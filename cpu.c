@@ -2,6 +2,13 @@
 #include <string.h>
 #include "cpu.h"
 
+#define PAIR_B upper
+#define PAIR_C lower
+#define PAIR_D upper
+#define PAIR_E lower
+#define PAIR_H upper
+#define PAIR_L lower
+
 static uint8_t regA;
 static reg_pair_t regBC, regDE, regHL;
 static uint16_t regSP, regPC;
@@ -141,98 +148,134 @@ void cpu_exec_op() {
         case 0x40: // MOV B,B; 1 byte
             break;
         case 0x41: // MOV B,C; 1 byte
+            regBC.pair.PAIR_B = regBC.pair.PAIR_C;
             break;
         case 0x42: // MOV B,D; 1 byte
+            regBC.pair.PAIR_B = regDE.pair.PAIR_D;
             break;
         case 0x43: // MOV B,E; 1 byte
+            regBC.pair.PAIR_B = regDE.pair.PAIR_E;
             break;
         case 0x44: // MOV B,H; 1 byte
+            regBC.pair.PAIR_B = regHL.pair.PAIR_H;
             break;
         case 0x45: // MOV B,L; 1 byte
+            regBC.pair.PAIR_B = regHL.pair.PAIR_L;
             break;
         case 0x46: // MOV B,M; 1 byte
             break;
         case 0x47: // MOV B,A; 1 byte
+            regBC.pair.PAIR_B = regA;
             break;
         case 0x48: // MOV C,B; 1 byte
+            regBC.pair.PAIR_C = regBC.pair.PAIR_B;
             break;
         case 0x49: // MOV C,C; 1 byte
             break;
         case 0x4A: // MOV C,D; 1 byte
+            regBC.pair.PAIR_C = regDE.pair.PAIR_D;
             break;
         case 0x4B: // MOV C,E; 1 byte
+            regBC.pair.PAIR_C = regDE.pair.PAIR_E;
             break;
         case 0x4C: // MOV C,H; 1 byte
+            regBC.pair.PAIR_C = regHL.pair.PAIR_H;
             break;
         case 0x4D: // MOV C,L; 1 byte
+            regBC.pair.PAIR_C = regHL.pair.PAIR_L;
             break;
         case 0x4E: // MOV C,M; 1 byte
             break;
         case 0x4F: // MOV C,A; 1 byte
+            regBC.pair.PAIR_C = regA;
             break;
         case 0x50: // MOV D,B; 1 byte
+            regDE.pair.PAIR_D = regBC.pair.PAIR_B;
             break;
         case 0x51: // MOV D,C; 1 byte
+            regDE.pair.PAIR_D = regBC.pair.PAIR_C;
             break;
         case 0x52: // MOV D,D; 1 byte
             break;
         case 0x53: // MOV D,E; 1 byte
+            regDE.pair.PAIR_D = regDE.pair.PAIR_E;
             break;
         case 0x54: // MOV D,H; 1 byte
+            regDE.pair.PAIR_D = regHL.pair.PAIR_H;
             break;
         case 0x55: // MOV D,L; 1 byte
+            regDE.pair.PAIR_D = regHL.pair.PAIR_L;
             break;
         case 0x56: // MOV D,M; 1 byte
             break;
         case 0x57: // MOV D,A; 1 byte
+            regDE.pair.PAIR_D = regA;
             break;
         case 0x58: // MOV E,B; 1 byte
+            regDE.pair.PAIR_E = regBC.pair.PAIR_B;
             break;
         case 0x59: // MOV E,C; 1 byte
+            regDE.pair.PAIR_E = regBC.pair.PAIR_C;
             break;
         case 0x5A: // MOV E,D; 1 byte
+            regDE.pair.PAIR_E = regDE.pair.PAIR_D;
             break;
         case 0x5B: // MOV E,E; 1 byte
             break;
         case 0x5C: // MOV E,H; 1 byte
+            regDE.pair.PAIR_E = regHL.pair.PAIR_H;
             break;
         case 0x5D: // MOV E,L; 1 byte
+            regDE.pair.PAIR_E = regHL.pair.PAIR_L;
             break;
         case 0x5E: // MOV E,M; 1 byte
             break;
         case 0x5F: // MOV E,A; 1 byte
+            regDE.pair.PAIR_E = regA;
             break;
         case 0x60: // MOV H,B; 1 byte
+            regHL.pair.PAIR_H = regBC.pair.PAIR_B;
             break;
         case 0x61: // MOV H,C; 1 byte
+            regHL.pair.PAIR_H = regBC.pair.PAIR_C;
             break;
         case 0x62: // MOV H,D; 1 byte
+            regHL.pair.PAIR_H = regDE.pair.PAIR_D;
             break;
         case 0x63: // MOV H,E; 1 byte
+            regHL.pair.PAIR_H = regDE.pair.PAIR_E;
             break;
         case 0x64: // MOV H,H; 1 byte
             break;
         case 0x65: // MOV H,L; 1 byte
+            regHL.pair.PAIR_H = regHL.pair.PAIR_L;
             break;
         case 0x66: // MOV H,M; 1 byte
             break;
         case 0x67: // MOV H,A; 1 byte
+            regHL.pair.PAIR_H = regA;
             break;
         case 0x68: // MOV L,B; 1 byte
+            regHL.pair.PAIR_L = regBC.pair.PAIR_B;
             break;
         case 0x69: // MOV L,C; 1 byte
+            regHL.pair.PAIR_L = regBC.pair.PAIR_C;
             break;
         case 0x6A: // MOV L,D; 1 byte
+            regHL.pair.PAIR_L = regDE.pair.PAIR_D;
             break;
         case 0x6B: // MOV L,E; 1 byte
+            regHL.pair.PAIR_L = regDE.pair.PAIR_E;
             break;
         case 0x6C: // MOV L,H; 1 byte
+            regHL.pair.PAIR_L = regHL.pair.PAIR_H;
             break;
         case 0x6D: // MOV L,L; 1 byte
             break;
         case 0x6E: // MOV L,M; 1 byte
             break;
         case 0x6F: // MOV L,A; 1 byte
+            regHL.pair.PAIR_L = regA;
             break;
         case 0x70: // MOV M,B; 1 byte
             break;
@@ -251,16 +294,22 @@ void cpu_exec_op() {
         case 0x77: // MOV M,A; 1 byte
             break;
         case 0x78: // MOV A,B; 1 byte
+            regA = regBC.pair.PAIR_B;
             break;
         case 0x79: // MOV A,C; 1 byte
+            regA = regBC.pair.PAIR_C;
             break;
         case 0x7A: // MOV A,D; 1 byte
+            regA = regDE.pair.PAIR_D;
             break;
         case 0x7B: // MOV A,E; 1 byte
+            regA = regDE.pair.PAIR_E;
             break;
         case 0x7C: // MOV A,H; 1 byte
+            regA = regHL.pair.PAIR_H;
             break;
         case 0x7D: // MOV A,L; 1 byte
+            regA = regHL.pair.PAIR_L;
             break;
         case 0x7E: // MOV A,M; 1 byte
             break;
