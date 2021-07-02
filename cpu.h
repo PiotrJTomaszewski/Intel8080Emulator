@@ -2,6 +2,7 @@
 #define __CPU_H__
 
 #include <stdint.h>
+#include <stdbool.h>
 
 typedef union REG_PAIR {
     uint16_t single;
@@ -24,6 +25,11 @@ typedef union STATUS_REG {
         int Z: 1; // zero
     } flags;
 } status_reg_t;
+
+typedef struct CPU_STATUS {
+    bool interrupts_enabled;
+    bool halted;
+} cpu_status_t;
 
 void cpu_exec_op();
 
