@@ -25,6 +25,8 @@ typedef union STATUS_REG {
     } flags;
 } status_reg_t;
 
+void cpu_exec_op();
+
 void test();
 
 #endif // __CPU_H__
