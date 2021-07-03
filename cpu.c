@@ -116,6 +116,58 @@ inline static uint8_t get_next_prog_byte() {
     return memory_get(regPC++);
 }
 
+static uint16_t get_next_2_prog_bytes() {
+    uint8_t lower = memory_get(regPC++);
+    uint8_t higher = memory_get(regPC++);
+    return join_bytes(higher, lower);
+}
+
+/**
+ * returns number of cycles this operation takes
+ */
+inline static int cond_return(bool condition) {
+    if (condition) {
+        regPC_lower = stack_pop();
+        regPC_higher = stack_pop();
+        return 11;
+    } else {
+        return 5;
+    }
+}
+
+/**
+ * Jump address is read from program memory
+ */
+inline static void cond_jump(bool condition) {
+    if (condition) {
+        regPC = get_next_2_prog_bytes();
+    } else {
+        regPC += 2;
+    }
+}
+
+/**
+ * Called address is read from program memory
+ * returns number of cycles this operation takes 
+ */
+static int cond_call(bool condition) {
+    if (condition) {
+        stack_push(regPC_higher);
+        stack_push(regPC_lower);
+        regPC = get_next_2_prog_bytes();
+        return 17;
+    } else {
+        regPC += 2;
+        return 11;
+    }
+}
+
+inline static void call_addr(uint16_t addr) {
+    stack_push(regPC_higher);
+    stack_push(regPC_lower);
+    regPC = addr;
+}
+
 void cpu_exec_op(uint8_t opcode) {
     int operation_cycles = -1;
     switch (opcode) {
@@ -806,17 +858,20 @@ void cpu_exec_op(uint8_t opcode) {
         case 0xBF: // CMP A; 1 byte; 4 cycles; Z,S,P,C,AC flags
             break;
         case 0xC0: // RNZ; 1 byte; 11/5 cycles
+            operation_cycles = cond_return(!status_reg.flags.Z);
             break;
         case 0xC1: // POP B; 1 byte; 10 cycles
             break;
         case 0xC2: // JNZ adr; 3 bytes; 10 cycles
+            cond_jump(!status_reg.flags.Z);
+            operation_cycles = 10;
             break;
         case 0xC3: // JMP adr; 3 bytes; 10 cycles
-            regPC_lower = get_next_prog_byte();
-            regPC_higher = get_next_prog_byte();
+            regPC = get_next_2_prog_bytes();
             operation_cycles = 10;
             break;
         case 0xC4: // CNZ adr; 3 bytes; 17/11 cycles
+            operation_cycles = cond_call(!status_reg.flags.Z);
             break;
         case 0xC5: // PUSH B; 1 byte; 11 cycles
             break;
@@ -825,26 +880,32 @@ void cpu_exec_op(uint8_t opcode) {
             operation_cycles = 7;
             break;
         case 0xC7: // RST 0; 1 byte; 11 cycles
+            call_addr(0x0000);
+            operation_cycles = 11;
             break;
         case 0xC8: // RZ; 1 byte; 11/5 cycles
+            operation_cycles = cond_return(status_reg.flags.Z);
             break;
         case 0xC9: // RET; 1 byte; 10 cycles
+            regPC_lower = stack_pop();
+            regPC_higher = stack_pop();
+            operation_cycles = 10;
             break;
         case 0xCA: // JZ adr; 3 bytes; 10 cycles
+            cond_jump(status_reg.flags.Z);
+            operation_cycles = 10;
             break;
         case 0xCB: // - (works as JMP addr); 3 bytes; 10 cycles
+            regPC = get_next_2_prog_bytes();
+            operation_cycles = 10;
             break;
         case 0xCC: // CZ adr; 3 bytes; 17/11 cycles
+        operation_cycles = cond_call(status_reg.flags.Z);
             break;
         case 0xCD: // CALL adr; 3 bytes; 17 cycles
             stack_push(regPC_higher);
             stack_push(regPC_lower);
-            {
-                uint8_t lower = get_next_prog_byte();
-                uint8_t higher = get_next_prog_byte();
-                regPC_lower = lower;
-                regPC_higher = higher;
-            }
+            regPC = get_next_2_prog_bytes();
             operation_cycles = 17;
             break;
         case 0xCE: // ACI D8; 2 bytes; 7 cycles; Z,S,P,C,AC flags
@@ -852,16 +913,22 @@ void cpu_exec_op(uint8_t opcode) {
             operation_cycles = 7;
             break;
         case 0xCF: // RST 1; 1 byte; 11 cycles
+            call_addr(0x0008);
+            operation_cycles = 11;
             break;
         case 0xD0: // RNC; 1 byte; 11/5 cycles
+            operation_cycles = cond_return(!status_reg.flags.C);
             break;
         case 0xD1: // POP D; 1 byte; 10 cycles
             break;
         case 0xD2: // JNC adr; 3 bytes; 10 cycles
+            cond_jump(!status_reg.flags.C);
+            operation_cycles = 10;
             break;
         case 0xD3: // OUT D8; 2 bytes; 10 cycles
             break;
         case 0xD4: // CNC adr; 3 bytes; 17/11 cycles
+            cond_call(!status_reg.flags.C);
             break;
         case 0xD5: // PUSH D; 1 byte; 11 cycles
             break;
@@ -870,34 +937,53 @@ void cpu_exec_op(uint8_t opcode) {
             operation_cycles = 7;
             break;
         case 0xD7: // RST 2; 1 byte; 11 cycles
+            call_addr(0x0010);
+            operation_cycles = 11;
             break;
         case 0xD8: // RC; 1 byte; 11/5 cycles
+            operation_cycles = cond_return(status_reg.flags.C);
             break;
         case 0xD9: // - (works as RET); 1 byte; 10 cycles
+            regPC_lower = stack_pop();
+            regPC_higher = stack_pop();
+            operation_cycles = 10;
             break;
         case 0xDA: // JC adr; 3 bytes; 10 cycles
+            cond_jump(status_reg.flags.C);
+            operation_cycles = 10;
             break;
         case 0xDB: // IN D8; 2 bytes; 10 cycles
             break;
         case 0xDC: // CC adr; 3 bytes; 17/11 cycles
+            operation_cycles = cond_call(status_reg.flags.C);
             break;
         case 0xDD: // - (works as CALL addr); 3 bytes; 17 cycles
+            stack_push(regPC_higher);
+            stack_push(regPC_lower);
+            regPC = get_next_2_prog_bytes();
+            operation_cycles = 17;
             break;
         case 0xDE: // SBI D8; 2 bytes; 7 cycles; Z,S,P,C,AC flags
             regA = sub8bit_with_flags(regA, get_next_prog_byte(), status_reg.flags.C);
             operation_cycles = 7;
             break;
         case 0xDF: // RST 3; 1 byte; 11 cycles
+            call_addr(0x0018);
+            operation_cycles = 11;
             break;
         case 0xE0: // RPO; 1 byte; 11/5 cycles
+            operation_cycles = cond_return(!status_reg.flags.P);
             break;
         case 0xE1: // POP H; 1 byte; 10 cycles
             break;
         case 0xE2: // JPO adr; 3 bytes; 10 cycles
+            cond_jump(!status_reg.flags.P);
+            operation_cycles = 10;
             break;
         case 0xE3: // XTHL; 1 byte; 18 cycles
             break;
         case 0xE4: // CPO adr; 3 bytes; 17/11 cycles
+            operation_cycles = cond_call(!status_reg.flags.P);
             break;
         case 0xE5: // PUSH H; 1 byte; 11 cycles
             break;
@@ -906,36 +992,52 @@ void cpu_exec_op(uint8_t opcode) {
             operation_cycles = 7;
             break;
         case 0xE7: // RST 4; 1 byte; 11 cycles
+            call_addr(0x0020);
+            operation_cycles = 11;
             break;
         case 0xE8: // RPE; 1 byte; 11/5 cycles
+            operation_cycles = cond_return(status_reg.flags.P);
             break;
         case 0xE9: // PCHL; 1 byte; 5 cycles
             break;
         case 0xEA: // JPE adr; 3 bytes; 10 cycles
+            cond_jump(status_reg.flags.P);
+            operation_cycles = 10;
             break;
         case 0xEB: // XCHG; 1 byte; 5 cycles
             break;
         case 0xEC: // CPE adr; 3 bytes; 17/11 cycles
+            operation_cycles = cond_call(status_reg.flags.P);
             break;
         case 0xED: // - (works as CALL addr); 3 bytes; 17 cycles
+            stack_push(regPC_higher);
+            stack_push(regPC_lower);
+            regPC = get_next_2_prog_bytes();
+            operation_cycles = 17;
             break;
         case 0xEE: // XRI D8; 2 bytes; 7 cycles; Z,S,P,C,AC flags
             regA = xor8bit_with_flags(regA, get_next_prog_byte());
             operation_cycles = 7;
             break;
         case 0xEF: // RST 5; 1 byte; 11 cycles
+            call_addr(0x0028);
+            operation_cycles = 11;
             break;
         case 0xF0: // RP; 1 byte; 11/5 cycles
+            operation_cycles = cond_return(!status_reg.flags.S); // If the number is positive
             break;
         case 0xF1: // POP PSW; 1 byte; 10 cycles
             break;
         case 0xF2: // JP adr; 3 bytes; 10 cycles
+            cond_jump(!status_reg.flags.S); // If the number is positive
+            operation_cycles = 10;
             break;
         case 0xF3: // DI; 1 byte; 4 cycles
             cpu_state.interrupts_enabled = false;
             operation_cycles = 4;
             break;
         case 0xF4: // CP adr; 3 bytes; 17/11 cycles
+            operation_cycles = cond_call(!status_reg.flags.S); // If the number is positive
             break;
         case 0xF5: // PUSH PSW; 1 byte; 11 cycles
             break;
@@ -944,24 +1046,36 @@ void cpu_exec_op(uint8_t opcode) {
             operation_cycles = 7;
             break;
         case 0xF7: // RST 6; 1 byte; 11 cycles
+            call_addr(0x0030);
+            operation_cycles = 11;
             break;
         case 0xF8: // RM; 1 byte; 11/5 cycles
+            operation_cycles = cond_return(status_reg.flags.S); // If the number is negative
             break;
         case 0xF9: // SPHL; 1 byte; 5 cycles
             break;
         case 0xFA: // JM adr; 3 bytes; 10 cycles
+            cond_jump(status_reg.flags.S); // If the number is negative
+            operation_cycles = 10;
             break;
         case 0xFB: // EI; 1 byte; 4 cycles
             cpu_state.interrupts_enabled = true;
             operation_cycles = 4;
             break;
         case 0xFC: // CM adr; 3 bytes; 17/11 cycles
+            operation_cycles = cond_call(status_reg.flags.S); // If the number is negative
             break;
         case 0xFD: // - (works as CALL addr); 3 bytes; 17 cycles
+            stack_push(regPC_higher);
+            stack_push(regPC_lower);
+            regPC = get_next_2_prog_bytes();
+            operation_cycles = 17;
             break;
         case 0xFE: // CPI D8; 2 bytes; 7 cycles; Z,S,P,C,AC flags
             break;
         case 0xFF: // RST 7; 1 byte; 11 cycles
+            call_addr(0x0038);
+            operation_cycles = 11;
             break;
         default:
             break;
