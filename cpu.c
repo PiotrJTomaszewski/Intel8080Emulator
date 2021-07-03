@@ -3,15 +3,18 @@
 #include "cpu.h"
 #include "memory.h"
 
-#define PAIR_B upper
-#define PAIR_C lower
-#define PAIR_D upper
-#define PAIR_E lower
-#define PAIR_H upper
-#define PAIR_L lower
+#define regBC _regBCunion.single
+#define regB  _regBCunion.pair.upper
+#define regC  _regBCunion.pair.lower
+#define regDE _regDEunion.single
+#define regD  _regDEunion.pair.upper
+#define regE  _regDEunion.pair.lower
+#define regHL _regHLunion.single
+#define regH  _regHLunion.pair.upper
+#define regL  _regHLunion.pair.lower
 
 static uint8_t regA;
-static reg_pair_t regBC, regDE, regHL;
+static reg_pair_t _regBCunion, _regDEunion, _regHLunion; // Don't use directly, use defines instead
 static uint16_t regSP, regPC;
 static status_reg_t status_reg;
 static cpu_state_t cpu_state;
@@ -79,11 +82,11 @@ void cpu_exec_op(uint8_t opcode) {
         case 0x03: // INX B; 1 byte; 5 cycles
             break;
         case 0x04: // INR B; 1 byte; 5 cycles; Z,S,P,AC flags
-            regBC.pair.PAIR_B = add8bit_with_flags(regBC.pair.PAIR_B, 1, 0);
+            regB = add8bit_with_flags(regB, 1, 0);
             operation_cycles = 5;
             break;
         case 0x05: // DCR B; 1 byte; 5 cycles; Z,S,P,AC flags
-            regBC.pair.PAIR_B = sub8bit_with_flags(regBC.pair.PAIR_B, 1, 0);
+            regB = sub8bit_with_flags(regB, 1, 0);
             operation_cycles = 5;
             break;
         case 0x06: // MVI B,D8; 2 bytes; 7 cycles
@@ -99,11 +102,11 @@ void cpu_exec_op(uint8_t opcode) {
         case 0x0B: // DCX B; 1 byte; 5 cycles
             break;
         case 0x0C: // INR C; 1 byte; 5 cycles; Z,S,P,AC flags
-            regBC.pair.PAIR_C = add8bit_with_flags(regBC.pair.PAIR_C, 1, 0);
+            regC = add8bit_with_flags(regC, 1, 0);
             operation_cycles = 5;
             break;
         case 0x0D: // DCR C; 1 byte; 5 cycles; Z,S,P,AC flags
-            regBC.pair.PAIR_C = sub8bit_with_flags(regBC.pair.PAIR_C, 1, 0);
+            regC = sub8bit_with_flags(regC, 1, 0);
             operation_cycles = 5;
             break;
         case 0x0E: // MVI C,D8; 2 bytes; 7 cycles
@@ -119,11 +122,11 @@ void cpu_exec_op(uint8_t opcode) {
         case 0x13: // INX D; 1 byte; 5 cycles
             break;
         case 0x14: // INR D; 1 byte; 5 cycles; Z,S,P,AC flags
-            regDE.pair.PAIR_D = add8bit_with_flags(regDE.pair.PAIR_D, 1, 0);
+            regD = add8bit_with_flags(regD, 1, 0);
             operation_cycles = 5;
             break;
         case 0x15: // DCR D; 1 byte; 5 cycles; Z,S,P,AC flags
-            regDE.pair.PAIR_D = sub8bit_with_flags(regDE.pair.PAIR_D, 1, 0);
+            regD = sub8bit_with_flags(regD, 1, 0);
             break;
         case 0x16: // MVI D,D8; 2 bytes; 7 cycles
             break;
@@ -138,11 +141,11 @@ void cpu_exec_op(uint8_t opcode) {
         case 0x1B: // DCX D; 1 byte; 5 cycles
             break;
         case 0x1C: // INR E; 1 byte; 5 cycles; Z,S,P,AC flags
-            regDE.pair.PAIR_E = add8bit_with_flags(regDE.pair.PAIR_E, 1, 0);
+            regE = add8bit_with_flags(regE, 1, 0);
             operation_cycles = 5;
             break;
         case 0x1D: // DCR E; 1 byte; 5 cycles; Z,S,P,AC flags
-            regDE.pair.PAIR_E = sub8bit_with_flags(regDE.pair.PAIR_E, 1, 0);
+            regE = sub8bit_with_flags(regE, 1, 0);
             operation_cycles = 5;
             break;
         case 0x1E: // MVI E,D8; 2 bytes; 7 cycles
@@ -158,11 +161,11 @@ void cpu_exec_op(uint8_t opcode) {
         case 0x23: // INX H; 1 byte; 5 cycles
             break;
         case 0x24: // INR H; 1 byte; 5 cycles; Z,S,P,AC flags
-            regHL.pair.PAIR_H = add8bit_with_flags(regHL.pair.PAIR_H, 1, 0);
+            regH = add8bit_with_flags(regH, 1, 0);
             operation_cycles = 5;
             break;
         case 0x25: // DCR H; 1 byte; 5 cycles; Z,S,P,AC flags
-            regHL.pair.PAIR_H = sub8bit_with_flags(regHL.pair.PAIR_H, 1, 0);
+            regH = sub8bit_with_flags(regH, 1, 0);
             operation_cycles = 5;
             break;
         case 0x26: // MVI H,D8; 2 bytes; 7 cycles
@@ -178,11 +181,11 @@ void cpu_exec_op(uint8_t opcode) {
         case 0x2B: // DCX H; 1 byte; 5 cycles
             break;
         case 0x2C: // INR L; 1 byte; 5 cycles; Z,S,P,AC flags
-            regHL.pair.PAIR_L = add8bit_with_flags(regHL.pair.PAIR_L, 1, 0);
+            regL = add8bit_with_flags(regL, 1, 0);
             operation_cycles = 5;
             break;
         case 0x2D: // DCR L; 1 byte; 5 cycles; Z,S,P,AC flags
-            regHL.pair.PAIR_L = sub8bit_with_flags(regHL.pair.PAIR_L, 1, 0);
+            regL = sub8bit_with_flags(regL, 1, 0);
             operation_cycles = 5;
             break;
         case 0x2E: // MVI L,D8; 2 bytes; 7 cycles
@@ -198,11 +201,11 @@ void cpu_exec_op(uint8_t opcode) {
         case 0x33: // INX SP; 1 byte; 5 cycles
             break;
         case 0x34: // INR M; 1 byte; 10 cycles; Z,S,P,AC flags
-            memory_store(regHL.single, add8bit_with_flags(memory_get(regHL.single), 1, 0));
+            memory_store(regHL, add8bit_with_flags(memory_get(regHL), 1, 0));
             operation_cycles = 10;
             break;
         case 0x35: // DCR M; 1 byte; 10 cycles; Z,S,P,AC flags
-            memory_store(regHL.single, sub8bit_with_flags(memory_get(regHL.single), 1, 0));
+            memory_store(regHL, sub8bit_with_flags(memory_get(regHL), 1, 0));
             operation_cycles = 10;
             break;
         case 0x36: // MVI M,D8; 2 bytes; 10 cycles
@@ -243,275 +246,275 @@ void cpu_exec_op(uint8_t opcode) {
             operation_cycles = 5;
             break;
         case 0x41: // MOV B,C; 1 byte; 5 cycles
-            regBC.pair.PAIR_B = regBC.pair.PAIR_C;
+            regB = regC;
             operation_cycles = 5;
             break;
         case 0x42: // MOV B,D; 1 byte; 5 cycles
-            regBC.pair.PAIR_B = regDE.pair.PAIR_D;
+            regB = regD;
             operation_cycles = 5;
             break;
         case 0x43: // MOV B,E; 1 byte; 5 cycles
-            regBC.pair.PAIR_B = regDE.pair.PAIR_E;
+            regB = regE;
             operation_cycles = 5;
             break;
         case 0x44: // MOV B,H; 1 byte; 5 cycles
-            regBC.pair.PAIR_B = regHL.pair.PAIR_H;
+            regB = regH;
             operation_cycles = 5;
             break;
         case 0x45: // MOV B,L; 1 byte; 5 cycles
-            regBC.pair.PAIR_B = regHL.pair.PAIR_L;
+            regB = regL;
             operation_cycles = 5;
             break;
         case 0x46: // MOV B,M; 1 byte; 7 cycles
-            regBC.pair.PAIR_B = memory_get(regHL.single);
+            regB = memory_get(regHL);
             operation_cycles = 7;
             break;
         case 0x47: // MOV B,A; 1 byte; 5 cycles
-            regBC.pair.PAIR_B = regA;
+            regB = regA;
             operation_cycles = 5;
             break;
         case 0x48: // MOV C,B; 1 byte; 5 cycles
-            regBC.pair.PAIR_C = regBC.pair.PAIR_B;
+            regC = regB;
             operation_cycles = 5;
             break;
         case 0x49: // MOV C,C; 1 byte; 5 cycles
             operation_cycles = 5;
             break;
         case 0x4A: // MOV C,D; 1 byte; 5 cycles
-            regBC.pair.PAIR_C = regDE.pair.PAIR_D;
+            regC = regD;
             operation_cycles = 5;
             break;
         case 0x4B: // MOV C,E; 1 byte; 5 cycles
-            regBC.pair.PAIR_C = regDE.pair.PAIR_E;
+            regC = regE;
             operation_cycles = 5;
             break;
         case 0x4C: // MOV C,H; 1 byte; 5 cycles
-            regBC.pair.PAIR_C = regHL.pair.PAIR_H;
+            regC = regH;
             operation_cycles = 5;
             break;
         case 0x4D: // MOV C,L; 1 byte; 5 cycles
-            regBC.pair.PAIR_C = regHL.pair.PAIR_L;
+            regC = regL;
             operation_cycles = 5;
             break;
         case 0x4E: // MOV C,M; 1 byte; 7 cycles
-            regBC.pair.PAIR_C = memory_get(regHL.single);
+            regC = memory_get(regHL);
             operation_cycles = 7;
             break;
         case 0x4F: // MOV C,A; 1 byte; 5 cycles
-            regBC.pair.PAIR_C = regA;
+            regC = regA;
             operation_cycles = 5;
             break;
         case 0x50: // MOV D,B; 1 byte; 5 cycles
-            regDE.pair.PAIR_D = regBC.pair.PAIR_B;
+            regD = regB;
             operation_cycles = 5;
             break;
         case 0x51: // MOV D,C; 1 byte; 5 cycles
-            regDE.pair.PAIR_D = regBC.pair.PAIR_C;
+            regD = regC;
             operation_cycles = 5;
             break;
         case 0x52: // MOV D,D; 1 byte; 5 cycles
             operation_cycles = 5;
             break;
         case 0x53: // MOV D,E; 1 byte; 5 cycles
-            regDE.pair.PAIR_D = regDE.pair.PAIR_E;
+            regD = regE;
             operation_cycles = 5;
             break;
         case 0x54: // MOV D,H; 1 byte; 5 cycles
-            regDE.pair.PAIR_D = regHL.pair.PAIR_H;
+            regD = regH;
             operation_cycles = 5;
             break;
         case 0x55: // MOV D,L; 1 byte; 5 cycles
-            regDE.pair.PAIR_D = regHL.pair.PAIR_L;
+            regD = regL;
             operation_cycles = 5;
             break;
         case 0x56: // MOV D,M; 1 byte; 7 cycles
-            regDE.pair.PAIR_D = memory_get(regHL.single);
+            regD = memory_get(regHL);
             operation_cycles = 7;
             break;
         case 0x57: // MOV D,A; 1 byte; 5 cycles
-            regDE.pair.PAIR_D = regA;
+            regD = regA;
             operation_cycles = 5;
             break;
         case 0x58: // MOV E,B; 1 byte; 5 cycles
-            regDE.pair.PAIR_E = regBC.pair.PAIR_B;
+            regE = regB;
             operation_cycles = 5;
             break;
         case 0x59: // MOV E,C; 1 byte; 5 cycles
-            regDE.pair.PAIR_E = regBC.pair.PAIR_C;
+            regE = regC;
             operation_cycles = 5;
             break;
         case 0x5A: // MOV E,D; 1 byte; 5 cycles
-            regDE.pair.PAIR_E = regDE.pair.PAIR_D;
+            regE = regD;
             operation_cycles = 5;
             break;
         case 0x5B: // MOV E,E; 1 byte; 5 cycles
             operation_cycles = 5;
             break;
         case 0x5C: // MOV E,H; 1 byte; 5 cycles
-            regDE.pair.PAIR_E = regHL.pair.PAIR_H;
+            regE = regH;
             operation_cycles = 5;
             break;
         case 0x5D: // MOV E,L; 1 byte; 5 cycles
-            regDE.pair.PAIR_E = regHL.pair.PAIR_L;
+            regE = regL;
             operation_cycles = 5;
             break;
         case 0x5E: // MOV E,M; 1 byte; 7 cycles
-            regDE.pair.PAIR_E = memory_get(regHL.single);
+            regE = memory_get(regHL);
             operation_cycles = 7;
             break;
         case 0x5F: // MOV E,A; 1 byte; 5 cycles
-            regDE.pair.PAIR_E = regA;
+            regE = regA;
             operation_cycles = 5;
             break;
         case 0x60: // MOV H,B; 1 byte; 5 cycles
-            regHL.pair.PAIR_H = regBC.pair.PAIR_B;
+            regH = regB;
             operation_cycles = 5;
             break;
         case 0x61: // MOV H,C; 1 byte; 5 cycles
-            regHL.pair.PAIR_H = regBC.pair.PAIR_C;
+            regH = regC;
             operation_cycles = 5;
             break;
         case 0x62: // MOV H,D; 1 byte; 5 cycles
-            regHL.pair.PAIR_H = regDE.pair.PAIR_D;
+            regH = regD;
             operation_cycles = 5;
             break;
         case 0x63: // MOV H,E; 1 byte; 5 cycles
-            regHL.pair.PAIR_H = regDE.pair.PAIR_E;
+            regH = regE;
             operation_cycles = 5;
             break;
         case 0x64: // MOV H,H; 1 byte; 5 cycles
             operation_cycles = 5;
             break;
         case 0x65: // MOV H,L; 1 byte; 5 cycles
-            regHL.pair.PAIR_H = regHL.pair.PAIR_L;
+            regH = regL;
             operation_cycles = 5;
             break;
         case 0x66: // MOV H,M; 1 byte; 7 cycles
-            regHL.pair.PAIR_H = memory_get(regHL.single);
+            regH = memory_get(regHL);
             operation_cycles = 7;
             break;
         case 0x67: // MOV H,A; 1 byte; 5 cycles
-            regHL.pair.PAIR_H = regA;
+            regH = regA;
             operation_cycles = 5;
             break;
         case 0x68: // MOV L,B; 1 byte; 5 cycles
-            regHL.pair.PAIR_L = regBC.pair.PAIR_B;
+            regL = regB;
             operation_cycles = 5;
             break;
         case 0x69: // MOV L,C; 1 byte; 5 cycles
-            regHL.pair.PAIR_L = regBC.pair.PAIR_C;
+            regL = regC;
             operation_cycles = 5;
             break;
         case 0x6A: // MOV L,D; 1 byte; 5 cycles
-            regHL.pair.PAIR_L = regDE.pair.PAIR_D;
+            regL = regD;
             operation_cycles = 5;
             break;
         case 0x6B: // MOV L,E; 1 byte; 5 cycles
-            regHL.pair.PAIR_L = regDE.pair.PAIR_E;
+            regL = regE;
             operation_cycles = 5;
             break;
         case 0x6C: // MOV L,H; 1 byte; 5 cycles
-            regHL.pair.PAIR_L = regHL.pair.PAIR_H;
+            regL = regH;
             operation_cycles = 5;
             break;
         case 0x6D: // MOV L,L; 1 byte; 5 cycles
             operation_cycles = 5;
             break;
         case 0x6E: // MOV L,M; 1 byte; 7 cycles
-            regHL.pair.PAIR_L = memory_get(regHL.single);
+            regL = memory_get(regHL);
             operation_cycles = 7;
             break;
         case 0x6F: // MOV L,A; 1 byte; 5 cycles
-            regHL.pair.PAIR_L = regA;
+            regL = regA;
             operation_cycles = 5;
             break;
         case 0x70: // MOV M,B; 1 byte; 7 cycles
-            memory_store(regHL.single, regBC.pair.PAIR_B);
+            memory_store(regHL, regB);
             operation_cycles = 7;
             break;
         case 0x71: // MOV M,C; 1 byte; 7 cycles
-            memory_store(regHL.single, regBC.pair.PAIR_C);
+            memory_store(regHL, regC);
             operation_cycles = 7;
             break;
         case 0x72: // MOV M,D; 1 byte; 7 cycles
-            memory_store(regHL.single, regDE.pair.PAIR_D);
+            memory_store(regHL, regD);
             operation_cycles = 7;
             break;
         case 0x73: // MOV M,E; 1 byte; 7 cycles
-            memory_store(regHL.single, regDE.pair.PAIR_E);
+            memory_store(regHL, regE);
             operation_cycles = 7;
             break;
         case 0x74: // MOV M,H; 1 byte; 7 cycles
-            memory_store(regHL.single, regHL.pair.PAIR_H);
+            memory_store(regHL, regH);
             operation_cycles = 7;
             break;
         case 0x75: // MOV M,L; 1 byte; 7 cycles
-            memory_store(regHL.single, regHL.pair.PAIR_L);
+            memory_store(regHL, regL);
             operation_cycles = 7;
             break;
         case 0x76: // HLT; 1 byte; 7 cycles
             break;
         case 0x77: // MOV M,A; 1 byte; 7 cycles
-            memory_store(regHL.single, regA);
+            memory_store(regHL, regA);
             operation_cycles = 7;
             break;
         case 0x78: // MOV A,B; 1 byte; 5 cycles
-            regA = regBC.pair.PAIR_B;
+            regA = regB;
             operation_cycles = 5;
             break;
         case 0x79: // MOV A,C; 1 byte; 5 cycles
-            regA = regBC.pair.PAIR_C;
+            regA = regC;
             operation_cycles = 5;
             break;
         case 0x7A: // MOV A,D; 1 byte; 5 cycles
-            regA = regDE.pair.PAIR_D;
+            regA = regD;
             operation_cycles = 5;
             break;
         case 0x7B: // MOV A,E; 1 byte; 5 cycles
-            regA = regDE.pair.PAIR_E;
+            regA = regE;
             operation_cycles = 5;
             break;
         case 0x7C: // MOV A,H; 1 byte; 5 cycles
-            regA = regHL.pair.PAIR_H;
+            regA = regH;
             operation_cycles = 5;
             break;
         case 0x7D: // MOV A,L; 1 byte; 5 cycles
-            regA = regHL.pair.PAIR_L;
+            regA = regL;
             operation_cycles = 5;
             break;
         case 0x7E: // MOV A,M; 1 byte; 7 cycles
-            regA = memory_get(regHL.single);
+            regA = memory_get(regHL);
             operation_cycles = 7;
             break;
         case 0x7F: // MOV A,A; 1 byte; 5 cycles
             operation_cycles = 5;
             break;
         case 0x80: // ADD B; 1 byte; 4 cycles; Z,S,P,C,AC flags
-            regA = add8bit_with_flags(regA, regBC.pair.PAIR_B, 0);
+            regA = add8bit_with_flags(regA, regB, 0);
             operation_cycles = 4;
             break;
         case 0x81: // ADD C; 1 byte; 4 cycles; Z,S,P,C,AC flags
-            regA = add8bit_with_flags(regA, regBC.pair.PAIR_C, 0);
+            regA = add8bit_with_flags(regA, regC, 0);
             operation_cycles = 4;
             break;
         case 0x82: // ADD D; 1 byte; 4 cycles; Z,S,P,C,AC flags
-            regA = add8bit_with_flags(regA, regDE.pair.PAIR_D, 0);
+            regA = add8bit_with_flags(regA, regD, 0);
             operation_cycles = 4;
             break;
         case 0x83: // ADD E; 1 byte; 4 cycles; Z,S,P,C,AC flags
-            regA = add8bit_with_flags(regA, regDE.pair.PAIR_E, 0);
+            regA = add8bit_with_flags(regA, regE, 0);
             operation_cycles = 4;
             break;
         case 0x84: // ADD H; 1 byte; 4 cycles; Z,S,P,C,AC flags
-            regA = add8bit_with_flags(regA, regHL.pair.PAIR_H, 0);
+            regA = add8bit_with_flags(regA, regH, 0);
             operation_cycles = 4;
             break;
         case 0x85: // ADD L; 1 byte; 4 cycles; Z,S,P,C,AC flags
-            regA = add8bit_with_flags(regA, regHL.pair.PAIR_L, 0);
+            regA = add8bit_with_flags(regA, regL, 0);
             operation_cycles = 4;
             break;
         case 0x86: // ADD M; 1 byte; 7 cycles; Z,S,P,C,AC flags
-            regA = add8bit_with_flags(regA, memory_get(regHL.single), 0);
+            regA = add8bit_with_flags(regA, memory_get(regHL), 0);
             operation_cycles = 7;
             break;
         case 0x87: // ADD A; 1 byte; 4 cycles; Z,S,P,C,AC flags
@@ -519,31 +522,31 @@ void cpu_exec_op(uint8_t opcode) {
             operation_cycles = 4;
             break;
         case 0x88: // ADC B; 1 byte; 4 cycles; Z,S,P,C,AC flags
-            regA = add8bit_with_flags(regA, regBC.pair.PAIR_B, status_reg.flags.C);
+            regA = add8bit_with_flags(regA, regB, status_reg.flags.C);
             operation_cycles = 4;
             break;
         case 0x89: // ADC C; 1 byte; 4 cycles; Z,S,P,C,AC flags
-            regA = add8bit_with_flags(regA, regBC.pair.PAIR_C, status_reg.flags.C);
+            regA = add8bit_with_flags(regA, regC, status_reg.flags.C);
             operation_cycles = 4;
             break;
         case 0x8A: // ADC D; 1 byte; 4 cycles; Z,S,P,C,AC flags
-            regA = add8bit_with_flags(regA, regDE.pair.PAIR_D, status_reg.flags.C);
+            regA = add8bit_with_flags(regA, regD, status_reg.flags.C);
             operation_cycles = 4;
             break;
         case 0x8B: // ADC E; 1 byte; 4 cycles; Z,S,P,C,AC flags
-            regA = add8bit_with_flags(regA, regDE.pair.PAIR_E, status_reg.flags.C);
+            regA = add8bit_with_flags(regA, regE, status_reg.flags.C);
             operation_cycles = 4;
             break;
         case 0x8C: // ADC H; 1 byte; 4 cycles; Z,S,P,C,AC flags
-            regA = add8bit_with_flags(regA, regHL.pair.PAIR_H, status_reg.flags.C);
+            regA = add8bit_with_flags(regA, regH, status_reg.flags.C);
             operation_cycles = 4;
             break;
         case 0x8D: // ADC L; 1 byte; 4 cycles; Z,S,P,C,AC flags
-            regA = add8bit_with_flags(regA, regHL.pair.PAIR_L, status_reg.flags.C);
+            regA = add8bit_with_flags(regA, regL, status_reg.flags.C);
             operation_cycles = 4;
             break;
         case 0x8E: // ADC M; 1 byte; 7 cycles; Z,S,P,C,AC flags
-            regA = add8bit_with_flags(regA, memory_get(regHL.single), status_reg.flags.C);
+            regA = add8bit_with_flags(regA, memory_get(regHL), status_reg.flags.C);
             operation_cycles = 7;
             break;
         case 0x8F: // ADC A; 1 byte; 4 cycles; Z,S,P,C,AC flags
@@ -551,31 +554,31 @@ void cpu_exec_op(uint8_t opcode) {
             operation_cycles = 4;
             break;
         case 0x90: // SUB B; 1 byte; 4 cycles; Z,S,P,C,AC flags
-            regA = sub8bit_with_flags(regA, regBC.pair.PAIR_B, 0);
+            regA = sub8bit_with_flags(regA, regB, 0);
             operation_cycles = 4;
             break;
         case 0x91: // SUB C; 1 byte; 4 cycles; Z,S,P,C,AC flags
-            regA = sub8bit_with_flags(regA, regBC.pair.PAIR_C, 0);
+            regA = sub8bit_with_flags(regA, regC, 0);
             operation_cycles = 4;
             break;
         case 0x92: // SUB D; 1 byte; 4 cycles; Z,S,P,C,AC flags
-            regA = sub8bit_with_flags(regA, regDE.pair.PAIR_D, 0);
+            regA = sub8bit_with_flags(regA, regD, 0);
             operation_cycles = 4;
             break;
         case 0x93: // SUB E; 1 byte; 4 cycles; Z,S,P,C,AC flags
-            regA = sub8bit_with_flags(regA, regDE.pair.PAIR_E, 0);
+            regA = sub8bit_with_flags(regA, regE, 0);
             operation_cycles = 4;
             break;
         case 0x94: // SUB H; 1 byte; 4 cycles; Z,S,P,C,AC flags
-            regA = sub8bit_with_flags(regA, regHL.pair.PAIR_H, 0);
+            regA = sub8bit_with_flags(regA, regH, 0);
             operation_cycles = 4;
             break;
         case 0x95: // SUB L; 1 byte; 4 cycles; Z,S,P,C,AC flags
-            regA = sub8bit_with_flags(regA, regHL.pair.PAIR_L, 0);
+            regA = sub8bit_with_flags(regA, regL, 0);
             operation_cycles = 4;
             break;
         case 0x96: // SUB M; 1 byte; 7 cycles; Z,S,P,C,AC flags
-            regA = sub8bit_with_flags(regA, memory_get(regHL.single), 0);
+            regA = sub8bit_with_flags(regA, memory_get(regHL), 0);
             operation_cycles = 7;
             break;
         case 0x97: // SUB A; 1 byte; 4 cycles; Z,S,P,C,AC flags
@@ -583,31 +586,31 @@ void cpu_exec_op(uint8_t opcode) {
             operation_cycles = 4;
             break;
         case 0x98: // SBB B; 1 byte; 4 cycles; Z,S,P,C,AC flags
-            regA = sub8bit_with_flags(regA, regBC.pair.PAIR_B, status_reg.flags.C);
+            regA = sub8bit_with_flags(regA, regB, status_reg.flags.C);
             operation_cycles = 4;
             break;
         case 0x99: // SBB C; 1 byte; 4 cycles; Z,S,P,C,AC flags
-            regA = sub8bit_with_flags(regA, regBC.pair.PAIR_C, status_reg.flags.C);
+            regA = sub8bit_with_flags(regA, regC, status_reg.flags.C);
             operation_cycles = 4;
             break;
         case 0x9A: // SBB D; 1 byte; 4 cycles; Z,S,P,C,AC flags
-            regA = sub8bit_with_flags(regA, regDE.pair.PAIR_D, status_reg.flags.C);
+            regA = sub8bit_with_flags(regA, regD, status_reg.flags.C);
             operation_cycles = 4;
             break;
         case 0x9B: // SBB E; 1 byte; 4 cycles; Z,S,P,C,AC flags
-            regA = sub8bit_with_flags(regA, regDE.pair.PAIR_E, status_reg.flags.C);
+            regA = sub8bit_with_flags(regA, regE, status_reg.flags.C);
             operation_cycles = 4;
             break;
         case 0x9C: // DBB H; 1 byte; 4 cycles; Z,S,P,C,AC flags
-            regA = sub8bit_with_flags(regA, regHL.pair.PAIR_H, status_reg.flags.C);
+            regA = sub8bit_with_flags(regA, regH, status_reg.flags.C);
             operation_cycles = 4;
             break;
         case 0x9D: // SBB L; 1 byte; 4 cycles; Z,S,P,C,AC flags
-            regA = sub8bit_with_flags(regA, regHL.pair.PAIR_L, status_reg.flags.C);
+            regA = sub8bit_with_flags(regA, regL, status_reg.flags.C);
             operation_cycles = 4;
             break;
         case 0x9E: // SBB M; 1 byte; 7 cycles; Z,S,P,C,AC flags
-            regA = sub8bit_with_flags(regA, memory_get(regHL.single), status_reg.flags.C);
+            regA = sub8bit_with_flags(regA, memory_get(regHL), status_reg.flags.C);
             operation_cycles = 7;
             break;
         case 0x9F: // SBB A; 1 byte; 4 cycles; Z,S,P,C,AC flags
