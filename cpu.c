@@ -55,12 +55,21 @@ inline static void set_P_flag16(uint16_t val) {
 static uint8_t add8bit_with_flags(uint8_t val1, uint8_t val2, uint8_t carry) {
     int result = val1 + val2 + carry;
     uint8_t result8bit = result & 0xFF;
-    status_reg.flags.C = (result >= 256);
+    status_reg.flags.C = (result >= 0x100);
     status_reg.flags.AC = ((((val1 & 0x0F) + (val2 & 0x0F) + carry) & 0x10) != 0);
     calc_Z_flag(result8bit);
     calc_S_flag(result8bit);
     calc_P_flag(result8bit);
     return result8bit;
+}
+
+/**
+ * Affected flags: C
+ */
+static uint16_t add16bit_with_flag(uint16_t val1, uint16_t val2) {
+    int result = val1 + val2;
+    status_reg.flags.C = (result >= 0x10000);
+    return result & 0xFFFF;
 }
 
 static uint8_t sub8bit_with_flags(uint8_t val1, uint8_t val2, uint8_t borrow) {
@@ -105,7 +114,7 @@ static uint8_t xor8bit_with_flags(uint8_t val1, uint8_t val2) {
 }
 
 inline static void stack_push(uint8_t value) {
-    memory_store(regSP--, value);
+    memory_store(--regSP, value);
 }
 
 inline static uint8_t stack_pop() {
@@ -180,8 +189,12 @@ void cpu_exec_op(uint8_t opcode) {
             operation_cycles = 10;
             break;
         case 0x02: // STAX B; 1 byte; 7 cycles
+            memory_store(regBC, regA);
+            operation_cycles = 7;
             break;
         case 0x03: // INX B; 1 byte; 5 cycles
+            regBC = (regBC+1) & 0xFFFF;
+            operation_cycles = 5;
             break;
         case 0x04: // INR B; 1 byte; 5 cycles; Z,S,P,AC flags
             regB = add8bit_with_flags(regB, 1, 0);
@@ -196,14 +209,24 @@ void cpu_exec_op(uint8_t opcode) {
             operation_cycles = 7;
             break;
         case 0x07: // RLC; 1 byte; 4 cycles; C flag
+            status_reg.flags.C = ((regA & 0x80) != 0);
+            regA = (regA << 1) | status_reg.flags.C;
+            operation_cycles = 4;
             break;
         case 0x08: // -; 1 byte; 4 cycles
+            operation_cycles = 4;
             break;
         case 0x09: // DAD B; 1 byte; 10 cycles; C flag
+            regHL = add16bit_with_flag(regHL, regBC);
+            operation_cycles = 10;
             break;
         case 0x0A: // LDAX B; 1 byte; 7 cycles
+            regA = memory_get(regBC);
+            operation_cycles = 7;
             break;
         case 0x0B: // DCX B; 1 byte; 5 cycles
+            regBC = (regBC - 1) & 0xFFFF;
+            operation_cycles = 5;
             break;
         case 0x0C: // INR C; 1 byte; 5 cycles; Z,S,P,AC flags
             regC = add8bit_with_flags(regC, 1, 0);
@@ -218,6 +241,9 @@ void cpu_exec_op(uint8_t opcode) {
             operation_cycles = 7;
             break;
         case 0x0F: // RRC; 1 byte; 4 cycles; C flag
+            status_reg.flags.C = (regA & 0x01);
+            regA = (regA >> 1) | (status_reg.flags.C << 7);
+            operation_cycles = 4;
             break;
         case 0x10: // -; 1 byte; 4 cycles
             operation_cycles = 4;
@@ -228,8 +254,12 @@ void cpu_exec_op(uint8_t opcode) {
             operation_cycles = 10;
             break;
         case 0x12: // STAX D; 1 byte; 7 cycles
+            memory_store(regDE, regA);
+            operation_cycles = 7;
             break;
         case 0x13: // INX D; 1 byte; 5 cycles
+            regDE = (regDE + 1) & 0xFFFF;
+            operation_cycles = 5;
             break;
         case 0x14: // INR D; 1 byte; 5 cycles; Z,S,P,AC flags
             regD = add8bit_with_flags(regD, 1, 0);
@@ -244,14 +274,27 @@ void cpu_exec_op(uint8_t opcode) {
             operation_cycles = 7;
             break;
         case 0x17: // RAL; 1 byte; 4 cycles; C flag
+            {
+                uint8_t old_C_flag = status_reg.flags.C;
+                status_reg.flags.C = ((regA & 0x80) != 0);
+                regA = (regA << 1) | old_C_flag;
+            }
+            operation_cycles = 4;
             break;
         case 0x18: // -; 1 byte; 4 cycles
+            operation_cycles = 4;
             break;
         case 0x19: // DAD D; 1 byte; 10 cycles; C flag
+            regHL = add16bit_with_flag(regHL, regDE);
+            operation_cycles = 10;
             break;
         case 0x1A: // LDAX D; 1 byte; 7 cycles
+            regA = memory_get(regDE);
+            operation_cycles = 7;
             break;
         case 0x1B: // DCX D; 1 byte; 5 cycles
+            regDE = (regDE - 1) & 0xFFFF;
+            operation_cycles = 5;
             break;
         case 0x1C: // INR E; 1 byte; 5 cycles; Z,S,P,AC flags
             regE = add8bit_with_flags(regE, 1, 0);
@@ -266,8 +309,15 @@ void cpu_exec_op(uint8_t opcode) {
             operation_cycles = 7;
             break;
         case 0x1F: // RAR; 1 byte; 4 cycles; C flag
+            {
+                uint8_t old_C_flag = status_reg.flags.C;
+                status_reg.flags.C = (regA & 0x01);
+                regA = (regA >> 1) | (old_C_flag << 7);
+            }
+            operation_cycles = 4;
             break;
         case 0x20: // -; 1 byte; 4 cycles
+            operation_cycles = 4;
             break;
         case 0x21: // LXI H,D16; 3 bytes; 10 cycles
             regL = get_next_prog_byte();
@@ -277,6 +327,8 @@ void cpu_exec_op(uint8_t opcode) {
         case 0x22: // SHLD adr; 3 bytes; 16 cycles
             break;
         case 0x23: // INX H; 1 byte; 5 cycles
+            regHL = (regHL + 1) & 0xFFFF;
+            operation_cycles = 5;
             break;
         case 0x24: // INR H; 1 byte; 5 cycles; Z,S,P,AC flags
             regH = add8bit_with_flags(regH, 1, 0);
@@ -295,10 +347,14 @@ void cpu_exec_op(uint8_t opcode) {
         case 0x28: // -; 1 byte; 4 cycles
             break;
         case 0x29: // DAD H; 1 byte; 10 cycles; C flag
+            regHL = add16bit_with_flag(regHL, regHL);
+            operation_cycles = 10;
             break;
         case 0x2A: // LHLD adr; 3 bytes; 16 cycles
             break;
         case 0x2B: // DCX H; 1 byte; 5 cycles
+            regHL = (regHL - 1) & 0xFFFF;
+            operation_cycles = 5;
             break;
         case 0x2C: // INR L; 1 byte; 5 cycles; Z,S,P,AC flags
             regL = add8bit_with_flags(regL, 1, 0);
@@ -324,6 +380,8 @@ void cpu_exec_op(uint8_t opcode) {
         case 0x32: // STA adr; 3 bytes; 13 cycles
             break;
         case 0x33: // INX SP; 1 byte; 5 cycles
+            regSP = (regSP + 1) & 0xFFFF;
+            operation_cycles = 5;
             break;
         case 0x34: // INR M; 1 byte; 10 cycles; Z,S,P,AC flags
             memory_store(regHL, add8bit_with_flags(memory_get(regHL), 1, 0));
@@ -344,6 +402,8 @@ void cpu_exec_op(uint8_t opcode) {
         case 0x38: // -; 1 byte; 4 cycles
             break;
         case 0x39: // DAD SP; 1 byte; 10 cycles; C flag
+            regHL = add16bit_with_flag(regHL, regSP);
+            operation_cycles = 10;
             break;
         case 0x3A: // LDA adr; 3 bytes; 13 cycles
             {
@@ -354,6 +414,8 @@ void cpu_exec_op(uint8_t opcode) {
             operation_cycles = 13;
             break;
         case 0x3B: // DCX SP; 1 byte; 5 cycles
+            regSP = (regSP - 1) ^ 0xFFFF;
+            operation_cycles = 5;
             break;
         case 0x3C: // INR A; 1 byte; 5 cycles; Z,S,P,AC flags
             regA = add8bit_with_flags(regA, 1, 0);
@@ -861,6 +923,9 @@ void cpu_exec_op(uint8_t opcode) {
             operation_cycles = cond_return(!status_reg.flags.Z);
             break;
         case 0xC1: // POP B; 1 byte; 10 cycles
+            regC = stack_pop();
+            regB = stack_pop();
+            operation_cycles = 10;
             break;
         case 0xC2: // JNZ adr; 3 bytes; 10 cycles
             cond_jump(!status_reg.flags.Z);
@@ -874,6 +939,9 @@ void cpu_exec_op(uint8_t opcode) {
             operation_cycles = cond_call(!status_reg.flags.Z);
             break;
         case 0xC5: // PUSH B; 1 byte; 11 cycles
+            stack_push(regB);
+            stack_push(regC);
+            operation_cycles = 11;
             break;
         case 0xC6: // ADI D8; 2 bytes; 7 cycles; Z,S,P,C,AC flags
             regA = add8bit_with_flags(regA, get_next_prog_byte(), 0);
@@ -920,6 +988,9 @@ void cpu_exec_op(uint8_t opcode) {
             operation_cycles = cond_return(!status_reg.flags.C);
             break;
         case 0xD1: // POP D; 1 byte; 10 cycles
+            regE = stack_pop();
+            regD = stack_pop();
+            operation_cycles = 10;
             break;
         case 0xD2: // JNC adr; 3 bytes; 10 cycles
             cond_jump(!status_reg.flags.C);
@@ -931,6 +1002,9 @@ void cpu_exec_op(uint8_t opcode) {
             cond_call(!status_reg.flags.C);
             break;
         case 0xD5: // PUSH D; 1 byte; 11 cycles
+            stack_push(regD);
+            stack_push(regE);
+            operation_cycles = 11;
             break;
         case 0xD6: // SUI D8; 2 bytes; 7 cycles; Z,S,P,C,AC flags
             regA = sub8bit_with_flags(regA, get_next_prog_byte(), 0);
@@ -975,6 +1049,9 @@ void cpu_exec_op(uint8_t opcode) {
             operation_cycles = cond_return(!status_reg.flags.P);
             break;
         case 0xE1: // POP H; 1 byte; 10 cycles
+            regL = stack_pop();
+            regH = stack_pop();
+            operation_cycles = 10;
             break;
         case 0xE2: // JPO adr; 3 bytes; 10 cycles
             cond_jump(!status_reg.flags.P);
@@ -986,6 +1063,9 @@ void cpu_exec_op(uint8_t opcode) {
             operation_cycles = cond_call(!status_reg.flags.P);
             break;
         case 0xE5: // PUSH H; 1 byte; 11 cycles
+            stack_push(regH);
+            stack_push(regL);
+            operation_cycles = 11;
             break;
         case 0xE6: // ANI D8; 2 bytes; 7 cycles; Z,S,P,C,AC flags
             regA = and8bit_with_flags(regA, get_next_prog_byte());
@@ -1027,6 +1107,9 @@ void cpu_exec_op(uint8_t opcode) {
             operation_cycles = cond_return(!status_reg.flags.S); // If the number is positive
             break;
         case 0xF1: // POP PSW; 1 byte; 10 cycles
+            status_reg.single = stack_pop();
+            regA = stack_pop();
+            operation_cycles = 10;
             break;
         case 0xF2: // JP adr; 3 bytes; 10 cycles
             cond_jump(!status_reg.flags.S); // If the number is positive
@@ -1040,6 +1123,9 @@ void cpu_exec_op(uint8_t opcode) {
             operation_cycles = cond_call(!status_reg.flags.S); // If the number is positive
             break;
         case 0xF5: // PUSH PSW; 1 byte; 11 cycles
+            stack_push(regA);
+            stack_push(status_reg.single);
+            operation_cycles = 11;
             break;
         case 0xF6: // ORI D8; 2 bytes; 7 cycles; Z,S,P,C,AC flags
             regA = or8bit_with_flags(regA, get_next_prog_byte());
