@@ -1,8 +1,11 @@
 #include <stdio.h>
 #include <string.h>
+
 #include "cpu.h"
 #include "memory.h"
 #include "io.h"
+
+// TODO: Implement CPU "pins", like processor state
 
 #define regBC _regBC.single
 #define regB  _regBC.pair.higher
@@ -178,7 +181,7 @@ inline static void call_addr(uint16_t addr) {
     regPC = addr;
 }
 
-void cpu_exec_op(uint8_t opcode) {
+static int cpu_exec_op(uint8_t opcode) {
     int operation_cycles = -1;
     switch (opcode) {
         case 0x00: // NOP; 1 byte; 4 cycles
@@ -1240,10 +1243,32 @@ void cpu_exec_op(uint8_t opcode) {
     if (operation_cycles == -1) {
         printf("Operation not implemented: %02X\n", opcode);
     }
+    return operation_cycles;
 }
 
-void test() {
-    for (int i=0; i<256; i++) {
-        cpu_exec_op(i);
+
+void cpu_init() {
+    regPC = 0;
+    regSP = 0;
+    regA = 0;
+    regBC = 0;
+    regDE = 0;
+    regHL = 0;
+    status_reg.single = 0x02;
+    cpu_state.halted = false;
+    cpu_state.interrupts_enabled = false;
+    cpu_state.requested_interrupt_opcode = 0;
+}
+
+int cpu_step() {
+    if (!cpu_state.halted) {
+        if (cpu_state.interrupts_enabled && cpu_state.requested_interrupt_opcode) {
+            cpu_exec_op(cpu_state.requested_interrupt_opcode);
+            cpu_state.requested_interrupt_opcode = 0;
+        } else {
+            return cpu_exec_op(get_next_prog_byte());
+        }
+    } else {
+        return 4;
     }
 }

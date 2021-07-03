@@ -4,6 +4,8 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+#define CPU_FREQ 2000000
+
 typedef union REG16BIT {
     uint16_t single;
     struct REG16BIT_BYTE_PAIR {
@@ -29,10 +31,13 @@ typedef union STATUS_REG {
 typedef struct CPU_STATE {
     bool interrupts_enabled;
     bool halted;
+    uint8_t requested_interrupt_opcode;
 } cpu_state_t;
 
-void cpu_exec_op(uint8_t opcode);
+void cpu_init();
 
-void test();
+int cpu_step();
+
+void cpu_request_interrupt(uint8_t opcode);
 
 #endif // __CPU_H__
