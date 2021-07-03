@@ -8,7 +8,7 @@ typedef union REG_PAIR {
     uint16_t single;
     struct REG_PAIR_INNER {
         uint8_t lower;
-        uint8_t upper;
+        uint8_t higher;
     } pair;
 } reg_pair_t;
 

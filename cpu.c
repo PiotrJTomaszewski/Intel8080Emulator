@@ -4,13 +4,13 @@
 #include "memory.h"
 
 #define regBC _regBCunion.single
-#define regB  _regBCunion.pair.upper
+#define regB  _regBCunion.pair.higher
 #define regC  _regBCunion.pair.lower
 #define regDE _regDEunion.single
-#define regD  _regDEunion.pair.upper
+#define regD  _regDEunion.pair.higher
 #define regE  _regDEunion.pair.lower
 #define regHL _regHLunion.single
-#define regH  _regHLunion.pair.upper
+#define regH  _regHLunion.pair.higher
 #define regL  _regHLunion.pair.lower
 
 static uint8_t regA;
@@ -76,6 +76,9 @@ void cpu_exec_op(uint8_t opcode) {
             operation_cycles = 4;
             break;
         case 0x01: // LXI B,D16; 3 bytes; 10 cycles
+            regC = memory_get(regPC++);
+            regB = memory_get(regPC++);
+            operation_cycles = 10;
             break;
         case 0x02: // STAX B; 1 byte; 7 cycles
             break;
@@ -116,6 +119,9 @@ void cpu_exec_op(uint8_t opcode) {
         case 0x10: // -; 1 byte; 4 cycles
             break;
         case 0x11: // LXI D,D16; 3 bytes; 10 cycles
+            regE = memory_get(regPC++);
+            regD = memory_get(regPC++);
+            operation_cycles = 10;
             break;
         case 0x12: // STAX D; 1 byte; 7 cycles
             break;
@@ -155,6 +161,9 @@ void cpu_exec_op(uint8_t opcode) {
         case 0x20: // -; 1 byte; 4 cycles
             break;
         case 0x21: // LXI H,D16; 3 bytes; 10 cycles
+            regL = memory_get(regPC++);
+            regH = memory_get(regPC++);
+            operation_cycles = 10;
             break;
         case 0x22: // SHLD adr; 3 bytes; 16 cycles
             break;
@@ -195,6 +204,11 @@ void cpu_exec_op(uint8_t opcode) {
         case 0x30: // -; 1 byte; 4 cycles
             break;
         case 0x31: // LXI SP,D16; 3 bytes; 10 cycles
+            {
+                uint8_t lower = memory_get(regPC++);
+                uint8_t higher = memory_get(regPC++);
+                regSP = join_bytes(higher, lower);
+            }
             break;
         case 0x32: // STA adr; 3 bytes; 13 cycles
             break;
@@ -220,9 +234,9 @@ void cpu_exec_op(uint8_t opcode) {
             break;
         case 0x3A: // LDA adr; 3 bytes; 13 cycles
             {
-                uint8_t upper = memory_get(regPC++);
                 uint8_t lower = memory_get(regPC++);
-                regA = memory_get(join_bytes(upper, lower));
+                uint8_t higher = memory_get(regPC++);
+                regA = memory_get(join_bytes(higher, lower));
                 operation_cycles = 13;
             }
             break;
