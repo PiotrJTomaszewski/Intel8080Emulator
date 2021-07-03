@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 
+#define MEM_SIZE 0x10000
 
 void memory_store(uint16_t address, uint8_t value);
 
