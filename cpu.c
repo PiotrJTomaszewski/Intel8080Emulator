@@ -2,6 +2,7 @@
 #include <string.h>
 #include "cpu.h"
 #include "memory.h"
+#include "io.h"
 
 #define regBC _regBC.single
 #define regB  _regBC.pair.higher
@@ -389,6 +390,8 @@ void cpu_exec_op(uint8_t opcode) {
             operation_cycles = 7;
             break;
         case 0x2F: // CMA; 1 byte; 4 cycles
+            regA = ~regA;
+            operation_cycles = 4;
             break;
         case 0x30: // -; 1 byte; 4 cycles
             operation_cycles = 4;
@@ -423,6 +426,7 @@ void cpu_exec_op(uint8_t opcode) {
             operation_cycles = 4;
             break;
         case 0x38: // -; 1 byte; 4 cycles
+            operation_cycles = 4;
             break;
         case 0x39: // DAD SP; 1 byte; 10 cycles; C flag
             regHL = add16bit_with_flag(regHL, regSP);
@@ -1039,9 +1043,11 @@ void cpu_exec_op(uint8_t opcode) {
             operation_cycles = 10;
             break;
         case 0xD3: // OUT D8; 2 bytes; 10 cycles
+            io_write(get_next_prog_byte(), regA);
+            operation_cycles = 10;
             break;
         case 0xD4: // CNC adr; 3 bytes; 17/11 cycles
-            cond_call(!status_reg.flags.C);
+            operation_cycles = cond_call(!status_reg.flags.C);
             break;
         case 0xD5: // PUSH D; 1 byte; 11 cycles
             stack_push(regD);
@@ -1069,6 +1075,8 @@ void cpu_exec_op(uint8_t opcode) {
             operation_cycles = 10;
             break;
         case 0xDB: // IN D8; 2 bytes; 10 cycles
+            regA = io_read(get_next_prog_byte());
+            operation_cycles = 10;
             break;
         case 0xDC: // CC adr; 3 bytes; 17/11 cycles
             operation_cycles = cond_call(status_reg.flags.C);
