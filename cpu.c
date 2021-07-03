@@ -821,6 +821,8 @@ void cpu_exec_op(uint8_t opcode) {
         case 0xC5: // PUSH B; 1 byte; 11 cycles
             break;
         case 0xC6: // ADI D8; 2 bytes; 7 cycles; Z,S,P,C,AC flags
+            regA = add8bit_with_flags(regA, get_next_prog_byte(), 0);
+            operation_cycles = 7;
             break;
         case 0xC7: // RST 0; 1 byte; 11 cycles
             break;
@@ -846,6 +848,8 @@ void cpu_exec_op(uint8_t opcode) {
             operation_cycles = 17;
             break;
         case 0xCE: // ACI D8; 2 bytes; 7 cycles; Z,S,P,C,AC flags
+            regA = add8bit_with_flags(regA, get_next_prog_byte(), status_reg.flags.C);
+            operation_cycles = 7;
             break;
         case 0xCF: // RST 1; 1 byte; 11 cycles
             break;
@@ -862,6 +866,8 @@ void cpu_exec_op(uint8_t opcode) {
         case 0xD5: // PUSH D; 1 byte; 11 cycles
             break;
         case 0xD6: // SUI D8; 2 bytes; 7 cycles; Z,S,P,C,AC flags
+            regA = sub8bit_with_flags(regA, get_next_prog_byte(), 0);
+            operation_cycles = 7;
             break;
         case 0xD7: // RST 2; 1 byte; 11 cycles
             break;
@@ -878,6 +884,8 @@ void cpu_exec_op(uint8_t opcode) {
         case 0xDD: // - (works as CALL addr); 3 bytes; 17 cycles
             break;
         case 0xDE: // SBI D8; 2 bytes; 7 cycles; Z,S,P,C,AC flags
+            regA = sub8bit_with_flags(regA, get_next_prog_byte(), status_reg.flags.C);
+            operation_cycles = 7;
             break;
         case 0xDF: // RST 3; 1 byte; 11 cycles
             break;
@@ -894,6 +902,8 @@ void cpu_exec_op(uint8_t opcode) {
         case 0xE5: // PUSH H; 1 byte; 11 cycles
             break;
         case 0xE6: // ANI D8; 2 bytes; 7 cycles; Z,S,P,C,AC flags
+            regA = and8bit_with_flags(regA, get_next_prog_byte());
+            operation_cycles = 7;
             break;
         case 0xE7: // RST 4; 1 byte; 11 cycles
             break;
@@ -910,6 +920,8 @@ void cpu_exec_op(uint8_t opcode) {
         case 0xED: // - (works as CALL addr); 3 bytes; 17 cycles
             break;
         case 0xEE: // XRI D8; 2 bytes; 7 cycles; Z,S,P,C,AC flags
+            regA = xor8bit_with_flags(regA, get_next_prog_byte());
+            operation_cycles = 7;
             break;
         case 0xEF: // RST 5; 1 byte; 11 cycles
             break;
@@ -919,7 +931,7 @@ void cpu_exec_op(uint8_t opcode) {
             break;
         case 0xF2: // JP adr; 3 bytes; 10 cycles
             break;
-        case 0xF3: // DI; 1 byte
+        case 0xF3: // DI; 1 byte; 4 cycles
             cpu_state.interrupts_enabled = false;
             operation_cycles = 4;
             break;
@@ -928,6 +940,8 @@ void cpu_exec_op(uint8_t opcode) {
         case 0xF5: // PUSH PSW; 1 byte; 11 cycles
             break;
         case 0xF6: // ORI D8; 2 bytes; 7 cycles; Z,S,P,C,AC flags
+            regA = or8bit_with_flags(regA, get_next_prog_byte());
+            operation_cycles = 7;
             break;
         case 0xF7: // RST 6; 1 byte; 11 cycles
             break;
