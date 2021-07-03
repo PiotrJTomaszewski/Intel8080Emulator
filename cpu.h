@@ -4,13 +4,13 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-typedef union REG_PAIR {
+typedef union REG16BIT {
     uint16_t single;
-    struct REG_PAIR_INNER {
+    struct REG16BIT_BYTE_PAIR {
         uint8_t lower;
         uint8_t higher;
     } pair;
-} reg_pair_t;
+} reg_16bit_t;
 
 typedef union STATUS_REG {
     uint8_t single;
