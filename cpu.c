@@ -14,13 +14,61 @@ static uint8_t regA;
 static reg_pair_t regBC, regDE, regHL;
 static uint16_t regSP, regPC;
 static status_reg_t status_reg;
-static cpu_status_t cpu_status;
+static cpu_state_t cpu_state;
 
+inline static uint16_t join_bytes(uint8_t higher, uint8_t lower) {
+    return (higher << 8) | lower;
+}
 
-void cpu_exec_op() {
-    int x;
-    int operation_cycles;
-    switch (x) {
+inline static void set_Z_flag(uint8_t val) {
+    status_reg.flags.Z = (val == 0);
+}
+
+inline static void set_Z_flag16(uint16_t val) {
+    status_reg.flags.Z = (val == 0);
+}
+
+inline static void set_S_flag(uint8_t val) {
+    status_reg.flags.S = ((val & (1 << 7)) == 0x80);
+}
+
+inline static void set_S_flag16(uint16_t val) {
+    status_reg.flags.S = ((val & (1 << 15)) == 0x8000);
+}
+
+inline static void set_P_flag(uint8_t val) {
+    status_reg.flags.P = (__builtin_popcount(val) % 2 == 0);
+}
+
+inline static void set_P_flag16(uint16_t val) {
+    status_reg.flags.P = (__builtin_popcount(val) % 2 == 0);
+}
+
+static uint8_t add8bit_with_flags(uint8_t val1, uint8_t val2, uint8_t carry) {
+    int result = val1 + val2 + carry;
+    uint8_t result8bit = result & 0xFF;
+    status_reg.flags.C = (result >= 256);
+    status_reg.flags.AC = ((((val1 & 0x0F) + (val2 & 0x0F) + carry) & 0x10) != 0);
+    set_Z_flag(result8bit);
+    set_S_flag(result8bit);
+    set_P_flag(result8bit);
+    return result8bit;
+}
+
+static uint8_t sub8bit_with_flags(uint8_t val1, uint8_t val2, uint8_t borrow) {
+    int result = val1 - val2 - borrow;
+    uint8_t result8bit = result & 0xFF;
+    status_reg.flags.C = ((val2+borrow) > val1);
+    status_reg.flags.AC = ((((val1 & 0x0F) + (~val2 & 0x0F) + (borrow^1)) & 0x10) != 0);
+    set_Z_flag(result8bit);
+    set_S_flag(result8bit);
+    set_P_flag(result8bit);
+    return result8bit;
+}
+
+void cpu_exec_op(uint8_t opcode) {
+    int operation_cycles = -1;
+    switch (opcode) {
         case 0x00: // NOP; 1 byte; 4 cycles
             operation_cycles = 4;
             break;
@@ -133,12 +181,20 @@ void cpu_exec_op() {
         case 0x36: // MVI M,D8; 2 bytes; 10 cycles
             break;
         case 0x37: // STC; 1 byte; 4 cycles; C flag
+            status_reg.flags.C = 1;
+            operation_cycles = 4;
             break;
         case 0x38: // -; 1 byte; 4 cycles
             break;
         case 0x39: // DAD SP; 1 byte; 10 cycles; C flag
             break;
         case 0x3A: // LDA adr; 3 bytes; 13 cycles
+            {
+                uint8_t upper = memory_get(regPC++);
+                uint8_t lower = memory_get(regPC++);
+                regA = memory_get(join_bytes(upper, lower));
+                operation_cycles = 13;
+            }
             break;
         case 0x3B: // DCX SP; 1 byte; 5 cycles
             break;
@@ -400,68 +456,132 @@ void cpu_exec_op() {
             operation_cycles = 5;
             break;
         case 0x80: // ADD B; 1 byte; 4 cycles; Z,S,P,C,AC flags
+            regA = add8bit_with_flags(regA, regBC.pair.PAIR_B, 0);
+            operation_cycles = 4;
             break;
         case 0x81: // ADD C; 1 byte; 4 cycles; Z,S,P,C,AC flags
+            regA = add8bit_with_flags(regA, regBC.pair.PAIR_C, 0);
+            operation_cycles = 4;
             break;
         case 0x82: // ADD D; 1 byte; 4 cycles; Z,S,P,C,AC flags
+            regA = add8bit_with_flags(regA, regDE.pair.PAIR_D, 0);
+            operation_cycles = 4;
             break;
         case 0x83: // ADD E; 1 byte; 4 cycles; Z,S,P,C,AC flags
+            regA = add8bit_with_flags(regA, regDE.pair.PAIR_E, 0);
+            operation_cycles = 4;
             break;
         case 0x84: // ADD H; 1 byte; 4 cycles; Z,S,P,C,AC flags
+            regA = add8bit_with_flags(regA, regHL.pair.PAIR_H, 0);
+            operation_cycles = 4;
             break;
         case 0x85: // ADD L; 1 byte; 4 cycles; Z,S,P,C,AC flags
+            regA = add8bit_with_flags(regA, regHL.pair.PAIR_L, 0);
+            operation_cycles = 4;
             break;
         case 0x86: // ADD M; 1 byte; 7 cycles; Z,S,P,C,AC flags
+            regA = add8bit_with_flags(regA, memory_get(regHL.single), 0);
+            operation_cycles = 7;
             break;
         case 0x87: // ADD A; 1 byte; 4 cycles; Z,S,P,C,AC flags
+            regA = add8bit_with_flags(regA, regA, 0);
+            operation_cycles = 4;
             break;
         case 0x88: // ADC B; 1 byte; 4 cycles; Z,S,P,C,AC flags
+            regA = add8bit_with_flags(regA, regBC.pair.PAIR_B, status_reg.flags.C);
+            operation_cycles = 4;
             break;
         case 0x89: // ADC C; 1 byte; 4 cycles; Z,S,P,C,AC flags
+            regA = add8bit_with_flags(regA, regBC.pair.PAIR_C, status_reg.flags.C);
+            operation_cycles = 4;
             break;
         case 0x8A: // ADC D; 1 byte; 4 cycles; Z,S,P,C,AC flags
+            regA = add8bit_with_flags(regA, regDE.pair.PAIR_D, status_reg.flags.C);
+            operation_cycles = 4;
             break;
         case 0x8B: // ADC E; 1 byte; 4 cycles; Z,S,P,C,AC flags
+            regA = add8bit_with_flags(regA, regDE.pair.PAIR_E, status_reg.flags.C);
+            operation_cycles = 4;
             break;
         case 0x8C: // ADC H; 1 byte; 4 cycles; Z,S,P,C,AC flags
+            regA = add8bit_with_flags(regA, regHL.pair.PAIR_H, status_reg.flags.C);
+            operation_cycles = 4;
             break;
         case 0x8D: // ADC L; 1 byte; 4 cycles; Z,S,P,C,AC flags
+            regA = add8bit_with_flags(regA, regHL.pair.PAIR_L, status_reg.flags.C);
+            operation_cycles = 4;
             break;
         case 0x8E: // ADC M; 1 byte; 7 cycles; Z,S,P,C,AC flags
+            regA = add8bit_with_flags(regA, memory_get(regHL.single), status_reg.flags.C);
+            operation_cycles = 7;
             break;
         case 0x8F: // ADC A; 1 byte; 4 cycles; Z,S,P,C,AC flags
+            regA = add8bit_with_flags(regA, regA, status_reg.flags.C);
+            operation_cycles = 4;
             break;
         case 0x90: // SUB B; 1 byte; 4 cycles; Z,S,P,C,AC flags
+            regA = sub8bit_with_flags(regA, regBC.pair.PAIR_B, 0);
+            operation_cycles = 4;
             break;
         case 0x91: // SUB C; 1 byte; 4 cycles; Z,S,P,C,AC flags
+            regA = sub8bit_with_flags(regA, regBC.pair.PAIR_C, 0);
+            operation_cycles = 4;
             break;
         case 0x92: // SUB D; 1 byte; 4 cycles; Z,S,P,C,AC flags
+            regA = sub8bit_with_flags(regA, regDE.pair.PAIR_D, 0);
+            operation_cycles = 4;
             break;
         case 0x93: // SUB E; 1 byte; 4 cycles; Z,S,P,C,AC flags
+            regA = sub8bit_with_flags(regA, regDE.pair.PAIR_E, 0);
+            operation_cycles = 4;
             break;
         case 0x94: // SUB H; 1 byte; 4 cycles; Z,S,P,C,AC flags
+            regA = sub8bit_with_flags(regA, regHL.pair.PAIR_H, 0);
+            operation_cycles = 4;
             break;
         case 0x95: // SUB L; 1 byte; 4 cycles; Z,S,P,C,AC flags
+            regA = sub8bit_with_flags(regA, regHL.pair.PAIR_L, 0);
+            operation_cycles = 4;
             break;
         case 0x96: // SUB M; 1 byte; 7 cycles; Z,S,P,C,AC flags
+            regA = sub8bit_with_flags(regA, memory_get(regHL.single), 0);
+            operation_cycles = 7;
             break;
         case 0x97: // SUB A; 1 byte; 4 cycles; Z,S,P,C,AC flags
+            regA = sub8bit_with_flags(regA, regA, 0);
+            operation_cycles = 4;
             break;
         case 0x98: // SBB B; 1 byte; 4 cycles; Z,S,P,C,AC flags
+            regA = sub8bit_with_flags(regA, regBC.pair.PAIR_B, status_reg.flags.C);
+            operation_cycles = 4;
             break;
         case 0x99: // SBB C; 1 byte; 4 cycles; Z,S,P,C,AC flags
+            regA = sub8bit_with_flags(regA, regBC.pair.PAIR_C, status_reg.flags.C);
+            operation_cycles = 4;
             break;
         case 0x9A: // SBB D; 1 byte; 4 cycles; Z,S,P,C,AC flags
+            regA = sub8bit_with_flags(regA, regDE.pair.PAIR_D, status_reg.flags.C);
+            operation_cycles = 4;
             break;
         case 0x9B: // SBB E; 1 byte; 4 cycles; Z,S,P,C,AC flags
+            regA = sub8bit_with_flags(regA, regDE.pair.PAIR_E, status_reg.flags.C);
+            operation_cycles = 4;
             break;
         case 0x9C: // DBB H; 1 byte; 4 cycles; Z,S,P,C,AC flags
+            regA = sub8bit_with_flags(regA, regHL.pair.PAIR_H, status_reg.flags.C);
+            operation_cycles = 4;
             break;
         case 0x9D: // SBB L; 1 byte; 4 cycles; Z,S,P,C,AC flags
+            regA = sub8bit_with_flags(regA, regHL.pair.PAIR_L, status_reg.flags.C);
+            operation_cycles = 4;
             break;
         case 0x9E: // SBB M; 1 byte; 7 cycles; Z,S,P,C,AC flags
+            regA = sub8bit_with_flags(regA, memory_get(regHL.single), status_reg.flags.C);
+            operation_cycles = 7;
             break;
         case 0x9F: // SBB A; 1 byte; 4 cycles; Z,S,P,C,AC flags
+            regA = sub8bit_with_flags(regA, regA, status_reg.flags.C);
+            operation_cycles = 4;
             break;
         case 0xA0: // ANA B; 1 byte; 4 cycles; Z,S,P,C,AC flags
             break;
@@ -630,7 +750,7 @@ void cpu_exec_op() {
         case 0xF2: // JP adr; 3 bytes; 10 cycles
             break;
         case 0xF3: // DI; 1 byte
-            cpu_status.interrupts_enabled = false;
+            cpu_state.interrupts_enabled = false;
             operation_cycles = 4;
             break;
         case 0xF4: // CP adr; 3 bytes; 17/11 cycles
@@ -648,7 +768,7 @@ void cpu_exec_op() {
         case 0xFA: // JM adr; 3 bytes; 10 cycles
             break;
         case 0xFB: // EI; 1 byte; 4 cycles
-            cpu_status.interrupts_enabled = true;
+            cpu_state.interrupts_enabled = true;
             operation_cycles = 4;
             break;
         case 0xFC: // CM adr; 3 bytes; 17/11 cycles
@@ -662,8 +782,12 @@ void cpu_exec_op() {
         default:
             break;
     }
+    if (operation_cycles == -1) {
+        printf("Operation not implemented: %02X\n", opcode);
+    }
 }
 
 void test() {
- 
+    status_reg.single = 0x02;
+
 }

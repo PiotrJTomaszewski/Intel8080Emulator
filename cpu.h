@@ -15,23 +15,23 @@ typedef union REG_PAIR {
 typedef union STATUS_REG {
     uint8_t single;
     struct STATUS_REG_INNER {
-        int C: 1; // carry
-        int _padding1: 1;
-        int P: 1; // parity
-        int _padding2: 1;
-        int AC: 1; // auxiliary carry
-        int _padding3: 1;
-        int S: 1; // sign
-        int Z: 1; // zero
+        unsigned C: 1; // carry
+        unsigned _unused1: 1;
+        unsigned P: 1; // parity
+        unsigned _unused2: 1;
+        unsigned AC: 1; // auxiliary carry
+        unsigned _unused3: 1;
+        unsigned S: 1; // sign
+        unsigned Z: 1; // zero
     } flags;
 } status_reg_t;
 
-typedef struct CPU_STATUS {
+typedef struct CPU_STATE {
     bool interrupts_enabled;
     bool halted;
-} cpu_status_t;
+} cpu_state_t;
 
-void cpu_exec_op();
+void cpu_exec_op(uint8_t opcode);
 
 void test();
 
