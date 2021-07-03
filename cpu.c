@@ -79,8 +79,12 @@ void cpu_exec_op(uint8_t opcode) {
         case 0x03: // INX B; 1 byte; 5 cycles
             break;
         case 0x04: // INR B; 1 byte; 5 cycles; Z,S,P,AC flags
+            regBC.pair.PAIR_B = add8bit_with_flags(regBC.pair.PAIR_B, 1, 0);
+            operation_cycles = 5;
             break;
         case 0x05: // DCR B; 1 byte; 5 cycles; Z,S,P,AC flags
+            regBC.pair.PAIR_B = sub8bit_with_flags(regBC.pair.PAIR_B, 1, 0);
+            operation_cycles = 5;
             break;
         case 0x06: // MVI B,D8; 2 bytes; 7 cycles
             break;
@@ -95,8 +99,12 @@ void cpu_exec_op(uint8_t opcode) {
         case 0x0B: // DCX B; 1 byte; 5 cycles
             break;
         case 0x0C: // INR C; 1 byte; 5 cycles; Z,S,P,AC flags
+            regBC.pair.PAIR_C = add8bit_with_flags(regBC.pair.PAIR_C, 1, 0);
+            operation_cycles = 5;
             break;
         case 0x0D: // DCR C; 1 byte; 5 cycles; Z,S,P,AC flags
+            regBC.pair.PAIR_C = sub8bit_with_flags(regBC.pair.PAIR_C, 1, 0);
+            operation_cycles = 5;
             break;
         case 0x0E: // MVI C,D8; 2 bytes; 7 cycles
             break;
@@ -111,8 +119,11 @@ void cpu_exec_op(uint8_t opcode) {
         case 0x13: // INX D; 1 byte; 5 cycles
             break;
         case 0x14: // INR D; 1 byte; 5 cycles; Z,S,P,AC flags
+            regDE.pair.PAIR_D = add8bit_with_flags(regDE.pair.PAIR_D, 1, 0);
+            operation_cycles = 5;
             break;
         case 0x15: // DCR D; 1 byte; 5 cycles; Z,S,P,AC flags
+            regDE.pair.PAIR_D = sub8bit_with_flags(regDE.pair.PAIR_D, 1, 0);
             break;
         case 0x16: // MVI D,D8; 2 bytes; 7 cycles
             break;
@@ -127,8 +138,12 @@ void cpu_exec_op(uint8_t opcode) {
         case 0x1B: // DCX D; 1 byte; 5 cycles
             break;
         case 0x1C: // INR E; 1 byte; 5 cycles; Z,S,P,AC flags
+            regDE.pair.PAIR_E = add8bit_with_flags(regDE.pair.PAIR_E, 1, 0);
+            operation_cycles = 5;
             break;
         case 0x1D: // DCR E; 1 byte; 5 cycles; Z,S,P,AC flags
+            regDE.pair.PAIR_E = sub8bit_with_flags(regDE.pair.PAIR_E, 1, 0);
+            operation_cycles = 5;
             break;
         case 0x1E: // MVI E,D8; 2 bytes; 7 cycles
             break;
@@ -143,8 +158,12 @@ void cpu_exec_op(uint8_t opcode) {
         case 0x23: // INX H; 1 byte; 5 cycles
             break;
         case 0x24: // INR H; 1 byte; 5 cycles; Z,S,P,AC flags
+            regHL.pair.PAIR_H = add8bit_with_flags(regHL.pair.PAIR_H, 1, 0);
+            operation_cycles = 5;
             break;
         case 0x25: // DCR H; 1 byte; 5 cycles; Z,S,P,AC flags
+            regHL.pair.PAIR_H = sub8bit_with_flags(regHL.pair.PAIR_H, 1, 0);
+            operation_cycles = 5;
             break;
         case 0x26: // MVI H,D8; 2 bytes; 7 cycles
             break;
@@ -159,8 +178,12 @@ void cpu_exec_op(uint8_t opcode) {
         case 0x2B: // DCX H; 1 byte; 5 cycles
             break;
         case 0x2C: // INR L; 1 byte; 5 cycles; Z,S,P,AC flags
+            regHL.pair.PAIR_L = add8bit_with_flags(regHL.pair.PAIR_L, 1, 0);
+            operation_cycles = 5;
             break;
         case 0x2D: // DCR L; 1 byte; 5 cycles; Z,S,P,AC flags
+            regHL.pair.PAIR_L = sub8bit_with_flags(regHL.pair.PAIR_L, 1, 0);
+            operation_cycles = 5;
             break;
         case 0x2E: // MVI L,D8; 2 bytes; 7 cycles
             break;
@@ -175,8 +198,12 @@ void cpu_exec_op(uint8_t opcode) {
         case 0x33: // INX SP; 1 byte; 5 cycles
             break;
         case 0x34: // INR M; 1 byte; 10 cycles; Z,S,P,AC flags
+            memory_store(regHL.single, add8bit_with_flags(memory_get(regHL.single), 1, 0));
+            operation_cycles = 10;
             break;
         case 0x35: // DCR M; 1 byte; 10 cycles; Z,S,P,AC flags
+            memory_store(regHL.single, sub8bit_with_flags(memory_get(regHL.single), 1, 0));
+            operation_cycles = 10;
             break;
         case 0x36: // MVI M,D8; 2 bytes; 10 cycles
             break;
@@ -199,8 +226,12 @@ void cpu_exec_op(uint8_t opcode) {
         case 0x3B: // DCX SP; 1 byte; 5 cycles
             break;
         case 0x3C: // INR A; 1 byte; 5 cycles; Z,S,P,AC flags
+            regA = add8bit_with_flags(regA, 1, 0);
+            operation_cycles = 5;
             break;
         case 0x3D: // DCR A; 1 byte; 5 cycles; Z,S,P,AC flags
+            regA = sub8bit_with_flags(regA, 1, 0);
+            operation_cycles = 5;
             break;
         case 0x3E: // MVI A,D8; 2 bytes; 7 cycles
             break;
