@@ -23,8 +23,8 @@ typedef union STATUS_REG {
         unsigned _unused2: 1;
         unsigned AC: 1; // auxiliary carry
         unsigned _unused3: 1;
-        unsigned S: 1; // sign
         unsigned Z: 1; // zero
+        unsigned S: 1; // sign
     } flags;
 } status_reg_t;
 
@@ -39,5 +39,15 @@ void cpu_init();
 int cpu_step();
 
 void cpu_request_interrupt(uint8_t opcode);
+
+void cpu_set_PC_reg(uint16_t val);
+
+uint16_t cpu_get_PC_reg();
+
+uint8_t cpu_get_C_reg();
+
+uint8_t cpu_get_E_reg();
+
+uint16_t cpu_get_DE_reg();
 
 #endif // __CPU_H__

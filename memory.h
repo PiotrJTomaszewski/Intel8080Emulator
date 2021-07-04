@@ -5,7 +5,7 @@
 
 #define MEMORY_SIZE 0x10000
 
-void memory_read_file(char *path);
+void memory_read_file(char *path, uint16_t start_at);
 
 void memory_store(uint16_t address, uint8_t value);
 
