@@ -6,5 +6,5 @@ char *opnames[256] = {
 };
 
 void print_op(uint16_t pc, uint8_t opcode) {
-    // printf("%04X -> %s\n", pc-1, opnames[opcode]);
+    printf("%04X -> %s\n", pc-1, opnames[opcode]);
 }

@@ -54,7 +54,7 @@ void run_all_tests() {
         "../programs/8080EXER.COM",
         "../programs/8080EXM.COM"
     };
-    for (int i = 0; i < (sizeof(Test_Programs) / sizeof(Test_Programs[0])); i++) {
+    for (unsigned i = 0; i < (sizeof(Test_Programs) / sizeof(Test_Programs[0])); i++) {
         run_test(Test_Programs[i]);
     }
 }

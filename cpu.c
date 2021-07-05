@@ -291,7 +291,6 @@ inline static void call_addr(uint16_t addr) {
  */
 static int cpu_exec_op(uint8_t opcode) {
     int operation_cycles = -1;
-    // print_op(regPC, opcode);
     switch (opcode) {
         case 0x00: // NOP; 1 byte; 4 cycles
             operation_cycles = 4;
@@ -1405,8 +1404,9 @@ void cpu_init() {
 int cpu_step() {
     if (!cpu_state.halted) {
         if (cpu_state.interrupts_enabled && cpu_state.requested_interrupt_opcode) {
-            cpu_exec_op(cpu_state.requested_interrupt_opcode);
+            int cycles = cpu_exec_op(cpu_state.requested_interrupt_opcode);
             cpu_state.requested_interrupt_opcode = 0;
+            return cycles;
         } else {
             return cpu_exec_op(get_next_prog_byte());
         }
