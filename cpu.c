@@ -202,7 +202,7 @@ inline static void call_addr(uint16_t addr) {
 }
 static int cpu_exec_op(uint8_t opcode) {
     int operation_cycles = -1;
-    print_op(regPC, opcode);
+    // print_op(regPC, opcode);
     switch (opcode) {
         case 0x00: // NOP; 1 byte; 4 cycles
             operation_cycles = 4;
@@ -373,21 +373,26 @@ static int cpu_exec_op(uint8_t opcode) {
             operation_cycles = 7;
             break;
         case 0x27: // DAA; 1 byte; 4 cycles
-            {
-                uint8_t lower_nibble = regA & 0x0F;
-                uint8_t higher_nibble = regA >> 4;
-                if (lower_nibble > 9 || status_reg.flags.AC) {
-                    regA = (regA + 0x06) & 0xFF;
-                }
-                if (higher_nibble > 9 || status_reg.flags.C || (lower_nibble >= 9 && lower_nibble > 9)) {
-                    regA = (regA + 0x60) & 0xFF;
-                    status_reg.flags.C = 1;
-                }
-                calc_set_Z_flag(regA);
-                calc_set_S_flag(regA);
-                calc_set_P_flag(regA);
+            /*
+            * The behavoir of flags was developed to pass all the tests I had
+            * since all the documentation I could find was a bit lacking on this topic
+            */
+            if ((regA & 0x0F) > 9 || status_reg.flags.AC) {
+                // The C flag should be set to (regA + 0x06) > 0x100, so (regA > 0xA0)
+                status_reg.flags.C |= (regA > 0xA0);
+                // The AC flag would be set to 1 if (regA & 0x0F) + 6 > 15, so (regA & 0x0F) > 9
+                status_reg.flags.AC = ((regA & 0x0F) > 0x09);
+                regA = (regA + 0x06) & 0xFF;
+            } else {
                 status_reg.flags.AC = 0;
             }
+            if ((regA >> 4) > 9 || status_reg.flags.C) {
+                status_reg.flags.C  = 1;
+                regA = (regA + 0x60) & 0xFF;
+            }
+            calc_set_P_flag(regA);
+            calc_set_S_flag(regA);
+            calc_set_Z_flag(regA);
             operation_cycles = 4;
             break;
         case 0x28: // -; 1 byte; 4 cycles
