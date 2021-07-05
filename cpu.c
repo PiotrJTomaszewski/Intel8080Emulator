@@ -29,22 +29,47 @@ reg_16bit_t _regBC, _regDE, _regHL, _regPC, _regSP; // Don't use directly, use d
 status_reg_t status_reg;
 cpu_state_t cpu_state;
 
+/**
+ * Converts two 8bit numbers to one 16bit number
+ * Affected flags: None
+ * Affected registers: None
+ */
 inline static uint16_t join_bytes(uint8_t higher, uint8_t lower) {
     return (higher << 8) | lower;
 }
 
+/**
+ * Calculates the new value of the Z (zero) flag
+ * Affected flags: Z
+ * Affected registers: None
+ */
 inline static void calc_set_Z_flag(uint8_t val) {
     status_reg.flags.Z = (val == 0);
 }
 
+/**
+ * Calculates the new value of the S (sign) flag
+ * Affected flags: S
+ * Affected registers: None
+ */
 inline static void calc_set_S_flag(uint8_t val) {
     status_reg.flags.S = ((val & (1 << 7)) == 0x80);
 }
 
+/**
+ * Calculates the new value of the P (parity) flag
+ * Affected flags: Z
+ * Affected registers: None
+ */
 inline static void calc_set_P_flag(uint8_t val) {
     status_reg.flags.P = (__builtin_popcount(val) % 2 == 0);
 }
 
+/**
+ * Adds two 8bit values with carry and sets the flags accordingly
+ * Affected flags: Z, S, P, C, AC
+ * Affected registers: None
+ */
 static uint8_t add8bit_with_flags(uint8_t val1, uint8_t val2, uint8_t carry) {
     int result = val1 + val2 + carry;
     uint8_t result8bit = result & 0xFF;
@@ -57,7 +82,9 @@ static uint8_t add8bit_with_flags(uint8_t val1, uint8_t val2, uint8_t carry) {
 }
 
 /**
+ * Adds two 16bit values and sets the carry flag acoordingly
  * Affected flags: C
+ * Affected registers: None
  */
 static uint16_t add16bit_with_flag(uint16_t val1, uint16_t val2) {
     int result = val1 + val2;
@@ -65,6 +92,11 @@ static uint16_t add16bit_with_flag(uint16_t val1, uint16_t val2) {
     return result & 0xFFFF;
 }
 
+/**
+ * Substracts two 8bit values with borrow and sets the flags accordingly
+ * Affected flags: Z, S, P, C, AC
+ * Affected registers: None
+ */
 static uint8_t sub8bit_with_flags(uint8_t val1, uint8_t val2, uint8_t borrow) {
     int result = val1 - val2 - borrow;
     uint8_t result8bit = result & 0xFF;
@@ -77,7 +109,9 @@ static uint8_t sub8bit_with_flags(uint8_t val1, uint8_t val2, uint8_t borrow) {
 }
 
 /**
+ * Increments an 8bit value by 1 and sets the flags accordingly
  * Affected flags: Z, S, P, AC
+ * Affected registers: None
  */
 static uint8_t inc8bit_with_flags(uint8_t val) {
     uint8_t result = (val + 1) & 0xFF;
@@ -89,7 +123,9 @@ static uint8_t inc8bit_with_flags(uint8_t val) {
 }
 
 /**
+ * Decrements an 8bit value by 1 and sets the flags accordingly
  * Affected flags: Z, S, P, AC
+ * Affected registers: None
  */
 static uint8_t dec8bit_with_flags(uint8_t val) {
     uint8_t result = (val - 1) & 0xFF;
@@ -106,6 +142,11 @@ static uint8_t dec8bit_with_flags(uint8_t val) {
     return result;
 }
 
+/**
+ * Calculates a logical AND of two 8bit values and sets the flags accordingly
+ * Affected flags: Z, S, P, C, AC
+ * Affected registers: None
+ */
 static uint8_t and8bit_with_flags(uint8_t val1, uint8_t val2) {
     uint8_t result = val1 & val2;
     calc_set_Z_flag(result);
@@ -116,6 +157,11 @@ static uint8_t and8bit_with_flags(uint8_t val1, uint8_t val2) {
     return result;
 }
 
+/**
+ * Calculates a logical OR of two 8bit values and sets the flags accordingly
+ * Affected flags: Z, S, P, C, AC
+ * Affected registers: None
+ */
 static uint8_t or8bit_with_flags(uint8_t val1, uint8_t val2) {
     uint8_t result = val1 | val2;
     calc_set_Z_flag(result);
@@ -126,6 +172,11 @@ static uint8_t or8bit_with_flags(uint8_t val1, uint8_t val2) {
     return result;
 }
 
+/**
+ * Calculates a logical XOR of two 8bit values and sets the flags accordingly
+ * Affected flags: Z, S, P, C, AC
+ * Affected registers: None
+ */
 static uint8_t xor8bit_with_flags(uint8_t val1, uint8_t val2) {
     uint8_t result = val1 ^ val2;
     calc_set_Z_flag(result);
@@ -136,18 +187,38 @@ static uint8_t xor8bit_with_flags(uint8_t val1, uint8_t val2) {
     return result;
 }
 
+/**
+ * Pushes an 8bit value on the stack
+ * Affected flags: None
+ * Affected registers: SP
+ */
 inline static void stack_push(uint8_t value) {
     memory_store(--regSP, value);
 }
 
+/**
+ * Pops an 8bit value from the stack
+ * Affected flags: None
+ * Affected registers: SP
+ */
 inline static uint8_t stack_pop() {
     return memory_get(regSP++);
 }
 
+/**
+ * Returns the next program byte from memory
+ * Affected flags: None
+ * Affected registers: PC
+ */
 inline static uint8_t get_next_prog_byte() {
     return memory_get(regPC++);
 }
 
+/**
+ * Returns the next two program bytes from memory as an 16bit value
+ * Affected flags: None
+ * Affected registers: PC
+ */
 static uint16_t get_next_2_prog_bytes() {
     uint8_t lower = memory_get(regPC++);
     uint8_t higher = memory_get(regPC++);
@@ -155,7 +226,10 @@ static uint16_t get_next_2_prog_bytes() {
 }
 
 /**
- * returns number of cycles this operation takes
+ * Sets the new PC value (subroutine return) if the condition is met
+ * Returns the number of clock cycles this operation takes
+ * Affected flags: None
+ * Affected registers: PC, SP
  */
 inline static int cond_return(bool condition) {
     if (condition) {
@@ -168,7 +242,10 @@ inline static int cond_return(bool condition) {
 }
 
 /**
- * Jump address is read from program memory
+ * Sets the new PC value (jump) if the condition is met
+ * Returns the number of clock cycles this operation takes
+ * Affected flags: None
+ * Affected registers: PC
  */
 inline static void cond_jump(bool condition) {
     if (condition) {
@@ -179,8 +256,10 @@ inline static void cond_jump(bool condition) {
 }
 
 /**
- * Called address is read from program memory
- * returns number of cycles this operation takes 
+ * Sets the new PC value (subroutine call) if the condition is met
+ * Returns the number of clock cycles this operation takes
+ * Affected flags: None
+ * Affected registers: PC, SP
  */
 static int cond_call(bool condition) {
     if (condition) {
@@ -195,11 +274,21 @@ static int cond_call(bool condition) {
     }
 }
 
+/**
+ * Sets the new PC value (subroutine call)
+ * Affected flags: None
+ * Affected registers: PC, SP
+ */
 inline static void call_addr(uint16_t addr) {
     stack_push(regPC_higher);
     stack_push(regPC_lower);
     regPC = addr;
 }
+
+/**
+ * Executes an operation specified by a given opcode on the CPU
+ * Returns the number of clock cycles this operation takes
+ */
 static int cpu_exec_op(uint8_t opcode) {
     int operation_cycles = -1;
     // print_op(regPC, opcode);
@@ -1289,13 +1378,13 @@ static int cpu_exec_op(uint8_t opcode) {
         default:
             break;
     }
-    if (operation_cycles == -1) {
-        printf("Operation not implemented: %02X\n", opcode);
-    }
     return operation_cycles;
 }
 
 
+/**
+ * Sets CPU registers and helper variables to their initial values
+ */
 void cpu_init() {
     regPC = 0;
     regSP = 0;
@@ -1309,6 +1398,10 @@ void cpu_init() {
     cpu_state.requested_interrupt_opcode = 0;
 }
 
+/**
+ * Executes a signle machine cylce on the CPU
+ * Returns the number of clock cycles this step took
+ */
 int cpu_step() {
     if (!cpu_state.halted) {
         if (cpu_state.interrupts_enabled && cpu_state.requested_interrupt_opcode) {
@@ -1318,27 +1411,45 @@ int cpu_step() {
             return cpu_exec_op(get_next_prog_byte());
         }
     } else {
-        printf("HALTED\n");
+        /* The processor is usually emulated in batches
+        * so to avoid being stuck in an infinite loop
+        * I've assumed that halted processor executes NOPs 
+        */
         return 4;
     }
 }
 
+/**
+ * Sets the PC register to specified value
+ */
 void cpu_set_PC_reg(uint16_t val) {
     regPC = val;
 }
 
+/**
+ * Returns the current value of register PC
+ */
 uint16_t cpu_get_PC_reg() {
     return regPC;
 }
 
+/**
+ * Returns the current value of register C
+ */
 uint8_t cpu_get_C_reg() {
     return regC;
 }
 
+/**
+ * Returns the current value of register E
+ */
 uint8_t cpu_get_E_reg() {
     return regE;
 }
 
+/**
+ * Returns the current value of register DE
+ */
 uint16_t cpu_get_DE_reg() {
     return regDE;
 }
