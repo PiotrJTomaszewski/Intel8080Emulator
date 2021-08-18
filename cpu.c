@@ -462,7 +462,7 @@ static int cpu_exec_op(uint8_t opcode) {
             break;
         case 0x27: // DAA; 1 byte; 4 cycles
             /*
-            * The behavoir of flags was developed to pass all the tests I had
+            * The behaviour of flags was developed to pass all the tests I had
             * since all the documentation I could find was a bit lacking on this topic
             */
             if ((regA & 0x0F) > 9 || status_reg.flags.AC) {
