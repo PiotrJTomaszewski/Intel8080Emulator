@@ -31,7 +31,6 @@ typedef union STATUS_REG {
 typedef struct CPU_STATE {
     bool interrupts_enabled;
     bool halted;
-    uint8_t requested_interrupt_opcode;
 } cpu_state_t;
 
 void cpu_init();

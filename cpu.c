@@ -1394,7 +1394,6 @@ void cpu_init() {
     status_reg.single = 0x02;
     cpu_state.halted = false;
     cpu_state.interrupts_enabled = false;
-    cpu_state.requested_interrupt_opcode = 0;
 }
 
 /**
@@ -1403,13 +1402,7 @@ void cpu_init() {
  */
 int cpu_step() {
     if (!cpu_state.halted) {
-        if (cpu_state.interrupts_enabled && cpu_state.requested_interrupt_opcode) {
-            int cycles = cpu_exec_op(cpu_state.requested_interrupt_opcode);
-            cpu_state.requested_interrupt_opcode = 0;
-            return cycles;
-        } else {
-            return cpu_exec_op(get_next_prog_byte());
-        }
+        return cpu_exec_op(get_next_prog_byte());
     } else {
         /* The processor is usually emulated in batches
         * so to avoid being stuck in an infinite loop
