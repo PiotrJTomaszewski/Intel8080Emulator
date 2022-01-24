@@ -2,7 +2,7 @@
 
 Intel 8080 emulator written in C.
 
-This emulator was meant to be a part of a bigger project - creating an Alatir8800 "replica" running on some microcontroller. The memory and IO are stored in separate files so they can be easily developed to be used with external hardware.
+This emulator was meant to be a part of a bigger project - creating an Altair 8800 "replica" running on some microcontroller. The memory and IO are stored in separate files so they can be easily developed to be used with external hardware.
 
 The emulator has no external dependencies, you just need `cmake`, `make` and `GCC` to compile it.
 
